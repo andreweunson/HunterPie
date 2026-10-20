@@ -6,7 +6,7 @@ internal static class SupportedPlatformUseCase
 {
     public static void Execute()
     {
-        if (!OperatingSystem.IsWindows())
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsLinux())
             throw new UnsupportedPlatformException();
     }
 }

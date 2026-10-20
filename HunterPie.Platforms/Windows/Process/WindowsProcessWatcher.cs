@@ -1,6 +1,7 @@
 ﻿using HunterPie.Core.Address.Map;
 using HunterPie.Core.Domain.Interfaces;
 using HunterPie.Core.Domain.Process;
+using HunterPie.Core.Domain.Process.Entity;
 using HunterPie.Core.Domain.Process.Events;
 using HunterPie.Core.Domain.Process.Exceptions;
 using HunterPie.Core.Domain.Process.Internal;
@@ -119,7 +120,7 @@ internal class WindowsProcessWatcher(IProcessAttachStrategy[] strategies) : ICon
 
         try
         {
-            if (!strategy.CanAttach(process))
+            if (!strategy.CanAttach(CreateCandidate(process)))
                 return;
 
             CurrentProcess = AttachToGame(strategy, process);
@@ -141,6 +142,30 @@ internal class WindowsProcessWatcher(IProcessAttachStrategy[] strategies) : ICon
 
         _failedProcesses.Add(strategy.Name);
         process.Dispose();
+    }
+
+    private static ProcessCandidate CreateCandidate(SystemProcess process)
+    {
+        string? version = null;
+        nint baseAddress = IntPtr.Zero;
+
+        try
+        {
+            version = process.MainModule?.FileVersionInfo.FileVersion;
+            baseAddress = process.MainModule?.BaseAddress ?? IntPtr.Zero;
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // Missing permissions, strategies report this when they need the version
+        }
+
+        return new ProcessCandidate(
+            Id: process.Id,
+            Name: process.ProcessName,
+            WindowTitle: process.MainWindowTitle,
+            FileVersion: version,
+            BaseAddress: baseAddress
+        );
     }
 
     private static WindowsGameProcess AttachToGame(

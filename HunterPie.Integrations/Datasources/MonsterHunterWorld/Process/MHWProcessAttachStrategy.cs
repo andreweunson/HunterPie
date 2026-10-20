@@ -2,11 +2,11 @@
 using HunterPie.Core.Client;
 using HunterPie.Core.Domain.Enums;
 using HunterPie.Core.Domain.Process;
+using HunterPie.Core.Domain.Process.Entity;
 using HunterPie.Core.Domain.Process.Exceptions;
 using HunterPie.Core.Domain.Process.Service;
 using HunterPie.Core.Extensions;
 using HunterPie.Core.Game.Events;
-using SystemProcess = System.Diagnostics.Process;
 
 namespace HunterPie.Integrations.Datasources.MonsterHunterWorld.Process;
 
@@ -36,12 +36,15 @@ internal class MHWProcessAttachStrategy : IProcessAttachStrategy
 
     public event EventHandler<SimpleValueChangeEventArgs<ProcessStatus>>? StatusChange;
 
-    public bool CanAttach(SystemProcess process)
+    public bool CanAttach(ProcessCandidate process)
     {
-        if (!process.MainWindowTitle.ToUpperInvariant().StartsWith("MONSTER HUNTER: WORLD"))
+        if (string.IsNullOrEmpty(process.WindowTitle))
+            throw new UnauthorizedAccessException("Failed to read the Monster Hunter World window title, which is where the game version comes from. On Linux install xdotool.");
+
+        if (!process.WindowTitle.ToUpperInvariant().StartsWith("MONSTER HUNTER: WORLD"))
             return false;
 
-        string? rawVersion = process.MainWindowTitle.Split('(')
+        string? rawVersion = process.WindowTitle.Split('(')
             .ElementAtOrDefault(1)
             ?.TrimEnd(')');
         bool isValidVersion = int.TryParse(rawVersion, out int version);

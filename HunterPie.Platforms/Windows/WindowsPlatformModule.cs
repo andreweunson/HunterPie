@@ -11,6 +11,9 @@ internal class WindowsPlatformModule : IDependencyModule
 {
     public void Register(IDependencyRegistry registry)
     {
+        if (!OperatingSystem.IsWindows())
+            return;
+
         registry
             .WithSingle<WindowsProcessWatcher>()
             .WithSingle<WindowsRegistryAsync>()

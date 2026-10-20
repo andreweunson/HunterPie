@@ -42,10 +42,16 @@ public static class ClientInfo
     {
         get
         {
-            var winIdentity = WindowsIdentity.GetCurrent();
-            var principal = new WindowsPrincipal(winIdentity);
+            if (OperatingSystem.IsWindows())
+            {
+                var winIdentity = WindowsIdentity.GetCurrent();
+                var principal = new WindowsPrincipal(winIdentity);
 
-            return principal.IsInRole(WindowsBuiltInRole.Administrator);
+                return principal.IsInRole(WindowsBuiltInRole.Administrator);
+            }
+
+            // Environment.IsPrivilegedProcess is true for root on Unix and elevated on Windows
+            return Environment.IsPrivilegedProcess;
         }
     }
 

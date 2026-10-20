@@ -2,11 +2,11 @@
 using HunterPie.Core.Client;
 using HunterPie.Core.Domain.Enums;
 using HunterPie.Core.Domain.Process;
+using HunterPie.Core.Domain.Process.Entity;
 using HunterPie.Core.Domain.Process.Exceptions;
 using HunterPie.Core.Domain.Process.Service;
 using HunterPie.Core.Extensions;
 using HunterPie.Core.Game.Events;
-using SystemProcess = System.Diagnostics.Process;
 
 namespace HunterPie.Integrations.Datasources.MonsterHunterRise.Process;
 
@@ -36,12 +36,13 @@ internal class MHRProcessAttachStrategy : IProcessAttachStrategy
 
     public event EventHandler<SimpleValueChangeEventArgs<ProcessStatus>>? StatusChange;
 
-    public bool CanAttach(SystemProcess process)
+    public bool CanAttach(ProcessCandidate process)
     {
-        if (!process.MainWindowTitle.ToUpperInvariant().StartsWith("MONSTER HUNTER RISE"))
+        // The title is empty on Linux when no window inspector is available, the executable name already matched in that case
+        if (process.WindowTitle.Length > 0 && !process.WindowTitle.ToUpperInvariant().StartsWith("MONSTER HUNTER RISE"))
             return false;
 
-        string? version = process.MainModule?.FileVersionInfo.FileVersion;
+        string? version = process.FileVersion;
 
         if (version is not { })
             throw new UnauthorizedAccessException("Failed to get Monster Hunter Rise version, missing permissions");
