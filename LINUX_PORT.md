@@ -30,11 +30,11 @@ because the game build number is only in the window title. Rise and Wilds attach
 dotnet build HunterPie.Linux.slnf -c Release
 cd HunterPie.Linux.Overlay/bin/Release/net10.0
 ./HunterPie.Linux.Overlay --demo --edit     # no game needed: fake data, drag widgets into place
-kill -USR1 <pid>                            # leave edit mode (saves ~/.config/HunterPie/overlay.json), again to re-enter
+kill -USR1 <pid>                            # toggle edit mode from another terminal (saves ~/.config/HunterPie/overlay.json)
 ./HunterPie.Linux.Overlay                   # attach to the game and show monster health + quest timer
 ```
 It is a transparent, always-on-top window covering one monitor (`--screen <n>`). Outside edit mode its input region is
-empty (XShape), so mouse and keyboard go to the game. In edit mode drag a widget to move it and scroll over it to resize.
+empty (XShape), so mouse and keyboard go to the game. In edit mode drag a widget to move it and scroll over it to resize. In edit mode an on-screen panel has "Save & exit edit mode" and "Quit overlay" buttons; Esc leaves edit mode and Ctrl+Q quits.
 Bind `kill -USR1 $(pidof HunterPie.Linux.Overlay)` to a key in your desktop environment to get a "toggle layout" hotkey.
 
 Requirements: a compositing window manager (otherwise the transparent window is drawn black) and the game in

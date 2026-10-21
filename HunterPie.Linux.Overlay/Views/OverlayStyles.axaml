@@ -19,6 +19,8 @@
 
     <!-- Wraps each draggable widget; the outline only appears in layout edit mode -->
     <Style Selector="Border.host">
+        <!-- A null background is skipped by hit testing, which left the padding and gaps between cards ungrabbable -->
+        <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="BorderThickness" Value="2" />
         <Setter Property="CornerRadius" Value="10" />

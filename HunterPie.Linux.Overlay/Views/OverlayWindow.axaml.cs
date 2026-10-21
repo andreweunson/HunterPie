@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform;
 using HunterPie.Linux.Overlay.Platform;
@@ -46,6 +47,31 @@ public partial class OverlayWindow : Window
     {
         CoverScreen();
         ApplyLayout();
+    }
+
+    /// <summary>Saves the layout and returns to click-through mode</summary>
+    private void LeaveEditing()
+    {
+        if (DataContext is not OverlayViewModel { IsEditing: true } viewModel)
+            return;
+
+        SaveSettings();
+        viewModel.IsEditing = false;
+        ApplyLayout();
+    }
+
+    private void OnDoneClick(object? sender, RoutedEventArgs e) => LeaveEditing();
+
+    private void OnQuitClick(object? sender, RoutedEventArgs e) => Close();
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+
+        if (e.Key == Key.Escape)
+            LeaveEditing();
+        else if (e.Key == Key.Q && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+            Close();
     }
 
     private void WireEditing()

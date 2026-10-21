@@ -17,10 +17,19 @@
         <!-- Dims the screen in edit mode so the draggable widgets stand out -->
         <Border Background="#55000000" IsVisible="{Binding IsEditing}" IsHitTestVisible="False" />
 
-        <TextBlock Text="Layout edit mode: drag widgets, scroll to resize. Send SIGUSR1 (kill -USR1 &lt;pid&gt;) to save and leave."
-                   IsVisible="{Binding IsEditing}" IsHitTestVisible="False"
-                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,16,0,0"
-                   Foreground="#FFB84D" FontSize="14" FontWeight="SemiBold" />
+        <Border Classes="widget" IsVisible="{Binding IsEditing}"
+                HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,16,0,0">
+            <StackPanel Spacing="10">
+                <TextBlock Text="Layout edit mode: drag widgets, scroll over one to resize it."
+                           Foreground="#FFB84D" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                <TextBlock Classes="muted" HorizontalAlignment="Center"
+                           Text="Esc saves and leaves edit mode, Ctrl+Q quits the overlay." />
+                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                    <Button Name="DoneButton" Content="Save &amp; exit edit mode" Click="OnDoneClick" />
+                    <Button Name="QuitButton" Content="Quit overlay" Click="OnQuitClick" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
 
         <Canvas>
             <Border Name="QuestHost" Classes="host" Classes.editing="{Binding IsEditing}"
