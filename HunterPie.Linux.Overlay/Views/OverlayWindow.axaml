@@ -43,11 +43,11 @@
 
             <Border Name="MonstersHost" Classes="host" Classes.editing="{Binding IsEditing}"
                     IsVisible="{Binding ShowMonsters}">
-                <StackPanel Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="8">
                     <ItemsControl ItemsSource="{Binding Monsters}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <StackPanel Spacing="8" />
+                                <StackPanel Orientation="Horizontal" Spacing="8" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
