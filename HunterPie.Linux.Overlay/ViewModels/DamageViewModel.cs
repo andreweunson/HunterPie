@@ -1,5 +1,6 @@
 using HunterPie.Core.Game.Entity.Game;
 using HunterPie.Core.Game.Entity.Party;
+using HunterPie.Core.Game.Enums;
 using System.Collections.ObjectModel;
 
 namespace HunterPie.Linux.Overlay.ViewModels;
@@ -18,6 +19,14 @@ public sealed class DamageViewModel : ViewModelBase
     private bool _frozen;
     private bool _primed;
     private string _summary = string.Empty;
+    private bool _showGraph = true;
+    private bool _showStats = true;
+    private int _graphVersion;
+    private int _sampleCount;
+    private int _sampleStride = 1;
+    private double _nextSampleAt;
+    private double _graphMax = 10;
+    private string _graphMaxText = string.Empty;
     private int _summaryTotal = -1;
     private int _summarySecond = -1;
 
@@ -26,10 +35,10 @@ public sealed class DamageViewModel : ViewModelBase
     /// <summary>Placeholder rows shown in edit mode while the party is empty</summary>
     public IReadOnlyList<PlayerDamageViewModel> SampleRows { get; } =
     [
-        new("Hunter 1", 0, true),
-        new("Hunter 2", 1, false),
-        new("Hunter 3", 2, false),
-        new("Support hunter", PlayerDamageViewModel.CompanionSlot, false),
+        new("Hunter 1", 0, true, Weapon.Greatsword),
+        new("Hunter 2", 1, false, Weapon.Bow),
+        new("Hunter 3", 2, false, Weapon.SwitchAxe),
+        new("Support hunter", PlayerDamageViewModel.CompanionSlot, false, Weapon.Lance),
     ];
 
     /// <summary>True while a quest runs, or after one ended until the player leaves the hunting zone</summary>
@@ -40,12 +49,66 @@ public sealed class DamageViewModel : ViewModelBase
         get => _isEditing;
         set
         {
-            if (Set(ref _isEditing, value))
-                Raise(nameof(ShowSample));
+            if (!Set(ref _isEditing, value))
+                return;
+
+            Raise(nameof(ShowSample));
+            Raise(nameof(ShowSampleGraph));
         }
     }
 
     public bool ShowSample => IsEditing && Rows.Count == 0;
+
+    /// <summary>User option: DPS graph under the rows</summary>
+    public bool ShowGraph
+    {
+        get => _showGraph;
+        set
+        {
+            if (!Set(ref _showGraph, value))
+                return;
+
+            Raise(nameof(ShowGraphPanel));
+            Raise(nameof(ShowSampleGraph));
+        }
+    }
+
+    /// <summary>User option: attack, elemental and affinity under each hunter</summary>
+    public bool ShowStats
+    {
+        get => _showStats;
+        set
+        {
+            if (!Set(ref _showStats, value))
+                return;
+
+            for (int i = 0; i < Rows.Count; i++)
+                Rows[i].ShowStats = value;
+
+            foreach (PlayerDamageViewModel sample in SampleRows)
+                sample.ShowStats = value;
+        }
+    }
+
+    public bool ShowGraphPanel => ShowGraph && HasRows;
+
+    public bool ShowSampleGraph => ShowGraph && ShowSample;
+
+    /// <summary>Bumped whenever a new graph sample is taken; the graph control redraws on it</summary>
+    public int GraphVersion { get => _graphVersion; private set => Set(ref _graphVersion, value); }
+
+    /// <summary>Number of valid slots in every row's history</summary>
+    public int SampleCount => _sampleCount;
+
+    /// <summary>Top of the graph's vertical axis, with some headroom</summary>
+    public double GraphMax { get => _graphMax; private set => Set(ref _graphMax, value); }
+
+    public string GraphMaxText { get => _graphMaxText; private set => Set(ref _graphMaxText, value); }
+
+    /// <summary>Fake history for the edit mode placeholder graph</summary>
+    public int SampleGraphCount => 60;
+
+    public double SampleGraphMax => 80;
 
     /// <summary>"Team total · elapsed"</summary>
     public string Summary { get => _summary; private set => Set(ref _summary, value); }
@@ -61,6 +124,8 @@ public sealed class DamageViewModel : ViewModelBase
         {
             Raise(nameof(HasRows));
             Raise(nameof(ShowSample));
+            Raise(nameof(ShowGraphPanel));
+            Raise(nameof(ShowSampleGraph));
         };
 
         SampleRows[0].Set(18240, 61.3, 45);
@@ -68,6 +133,21 @@ public sealed class DamageViewModel : ViewModelBase
         SampleRows[2].Set(7410, 24.9, 18);
         SampleRows[3].Set(2830, 9.5, 7);
         Summary = "40,460 · 04:58";
+
+        double[] peaks = [61, 40, 25, 10];
+        double[] stats = [312, 61, 15, 288, 0, 20, 245, 105, 0];
+        for (int i = 0; i < SampleRows.Count; i++)
+        {
+            PlayerDamageViewModel row = SampleRows[i];
+            row.ShowStats = ShowStats;
+
+            if (i < 3)
+                row.SetStats(stats[i * 3], stats[i * 3 + 1], stats[i * 3 + 2]);
+
+            // A gentle rise that levels off, like a real DPS average
+            for (int t = 0; t < SampleGraphCount; t++)
+                row.History[t] = (float)(peaks[i] * (1 - Math.Exp(-(t + 4) / 12.0)) * (1 + 0.06 * Math.Sin(t / 4.0 + i)));
+        }
     }
 
     /// <summary>Called from the UI thread a few times a second</summary>
@@ -123,10 +203,10 @@ public sealed class DamageViewModel : ViewModelBase
 
         if (Rows.Count == 0)
         {
-            Rows.Add(new PlayerDamageViewModel("You", 0, true));
-            Rows.Add(new PlayerDamageViewModel("Hunter 2", 1, false));
-            Rows.Add(new PlayerDamageViewModel("Hunter 3", 2, false));
-            Rows.Add(new PlayerDamageViewModel("Support hunter", PlayerDamageViewModel.CompanionSlot, false));
+            Rows.Add(new PlayerDamageViewModel("You", 0, true, Weapon.Greatsword) { ShowStats = ShowStats });
+            Rows.Add(new PlayerDamageViewModel("Hunter 2", 1, false, Weapon.Bow) { ShowStats = ShowStats });
+            Rows.Add(new PlayerDamageViewModel("Hunter 3", 2, false, Weapon.SwitchAxe) { ShowStats = ShowStats });
+            Rows.Add(new PlayerDamageViewModel("Support hunter", PlayerDamageViewModel.CompanionSlot, false, Weapon.Lance) { ShowStats = ShowStats });
         }
 
         double[] rates = [64, 48, 33, 12];
@@ -142,8 +222,13 @@ public sealed class DamageViewModel : ViewModelBase
         for (int i = 0; i < Rows.Count; i++)
             Rows[i].Set(damages[i], damages[i] / Math.Max(1, seconds), total > 0 ? damages[i] * 100.0 / total : 0);
 
+        for (int i = 0; i < Rows.Count; i++)
+            if (i < 3)
+                Rows[i].SetStats(312 - i * 40, 61 - i * 20, 15 + i * 5);
+
         UpdateSummary(total, seconds);
         Sort();
+        SampleIfDue(seconds);
     }
 
     private bool TrySnapshot(IParty party)
@@ -175,7 +260,7 @@ public sealed class DamageViewModel : ViewModelBase
                 continue;
 
             // Members already there when we start looking are assumed to have been there since the beginning
-            Rows.Add(new PlayerDamageViewModel(member, _primed ? elapsed : 0));
+            Rows.Add(new PlayerDamageViewModel(member, _primed ? elapsed : 0) { ShowStats = ShowStats });
         }
 
         if (Rows.Count > 0)
@@ -207,11 +292,74 @@ public sealed class DamageViewModel : ViewModelBase
             double seconds = Math.Max(1, elapsed - Math.Min(elapsed, row.JoinedAt));
 
             row.SetName(member.Name);
+            row.SetWeapon(member.Weapon);
+            row.SetStatus(member.Status);
             row.Set(damage, damage / seconds, total > 0 ? damage * 100.0 / total : 0);
         }
 
         UpdateSummary(total, elapsed);
         Sort();
+        SampleIfDue(elapsed);
+    }
+
+    /// <summary>
+    /// Records every member's current DPS for the graph once per <see cref="_sampleStride"/> seconds of quest time.
+    /// The history has a fixed size: when it fills up every second sample is dropped and the stride doubles, so the
+    /// whole quest always fits and the cost of drawing it stops growing.
+    /// </summary>
+    private void SampleIfDue(double elapsed)
+    {
+        if (elapsed < _nextSampleAt)
+            return;
+
+        _nextSampleAt = Math.Floor(elapsed) + _sampleStride;
+
+        if (_sampleCount >= PlayerDamageViewModel.HistoryCapacity)
+            Compact();
+
+        double max = 0;
+
+        for (int i = 0; i < Rows.Count; i++)
+        {
+            float dps = (float)Rows[i].Dps;
+            Rows[i].History[_sampleCount] = dps;
+            max = Math.Max(max, dps);
+        }
+
+        _sampleCount++;
+
+        // Peak over everything still in the history, not just this sample
+        for (int i = 0; i < Rows.Count; i++)
+        {
+            float[] history = Rows[i].History;
+
+            for (int t = 0; t < _sampleCount; t++)
+                if (history[t] > max)
+                    max = history[t];
+        }
+
+        GraphMax = Math.Max(10, max * 1.1);
+        GraphMaxText = $"peak {max:N0} DPS";
+        Raise(nameof(SampleCount));
+        GraphVersion++;
+    }
+
+    private void Compact()
+    {
+        int half = PlayerDamageViewModel.HistoryCapacity / 2;
+
+        for (int i = 0; i < Rows.Count; i++)
+        {
+            float[] history = Rows[i].History;
+
+            for (int t = 0; t < half; t++)
+                history[t] = history[t * 2];
+
+            Array.Fill(history, float.NaN, half, history.Length - half);
+        }
+
+        _sampleCount = half;
+        _sampleStride *= 2;
     }
 
     private void UpdateSummary(int total, double elapsed)
@@ -252,6 +400,13 @@ public sealed class DamageViewModel : ViewModelBase
         Summary = string.Empty;
         _summaryTotal = -1;
         _summarySecond = -1;
+        _sampleCount = 0;
+        _sampleStride = 1;
+        _nextSampleAt = 0;
+        GraphMax = 10;
+        GraphMaxText = string.Empty;
+        Raise(nameof(SampleCount));
+        GraphVersion++;
     }
 
     private void Reset()

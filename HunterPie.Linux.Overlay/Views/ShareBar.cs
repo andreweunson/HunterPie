@@ -22,16 +22,6 @@ public sealed class ShareBar : Control
     private static readonly IBrush Track = new SolidColorBrush(Color.Parse("#22FFFFFF"));
     private static readonly Pen SelfOutline = new(new SolidColorBrush(Color.Parse("#99FFFFFF")), 1);
 
-    // Players in party order, then support hunters
-    private static readonly IBrush[] Fills =
-    [
-        new SolidColorBrush(Color.Parse("#995B9BFF")),
-        new SolidColorBrush(Color.Parse("#99E5564F")),
-        new SolidColorBrush(Color.Parse("#99E8B04A")),
-        new SolidColorBrush(Color.Parse("#99B48CFF")),
-        new SolidColorBrush(Color.Parse("#667C8791")),
-    ];
-
     private const double Radius = 4;
 
     static ShareBar()
@@ -68,7 +58,7 @@ public sealed class ShareBar : Control
         if (percent <= 0)
             return;
 
-        IBrush fill = Fills[Math.Clamp(Slot, 0, Fills.Length - 1)];
+        IBrush fill = SlotPalette.Fill(Slot);
         double width = Math.Max(area.Width * percent / 100, Radius * 2);
 
         context.DrawRectangle(fill, null, new RoundedRect(new Rect(0, 0, width, area.Height), Radius));

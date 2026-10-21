@@ -58,7 +58,7 @@ Widgets today: monster health (name, bar, numbers, enrage badge; one card per mo
 | Linux platform layer | Done |
 | Headless host | Done; attach, scan loop, shutdown and `--doctor` exercised against a fake game process |
 | Real-game test | Wilds 1.42.0.2 on Proton: attach, login, stage, quest, monster HP and enrage verified. World and Rise not yet tried |
-| Overlay (`HunterPie.Linux.Overlay`) | Monster health, quest timer and damage meter (per-player damage, share of team damage, DPS counted from when each member was first seen). Monster/quest widgets confirmed over the real game on KDE; the damage meter is verified on a virtual X server and against a fake party only |
+| Overlay (`HunterPie.Linux.Overlay`) | Monster health, quest timer and damage meter (per-player damage, share of team damage, DPS counted from when each member was first seen). Monster/quest widgets confirmed over the real game on KDE; the damage meter (with weapon icons, stats and DPS graph) is verified on a virtual X server and against a fake party only |
 | Remaining WPF widgets (player vitals, abnormalities, damage meter, parts, ailments, settings UI) | Not ported: `HunterPie.UI` is 424 C# / 116 XAML files |
 | Native module (DLL injection), Discord RPC, updater | Windows only for now |
 
@@ -84,7 +84,18 @@ compositor, only on a bare X server.
 ### Damage meter
 
 Rows are sorted by damage, with the colour bar showing each member's share of the team total; support hunters are
-italic and grey. The final numbers stay on screen after a quest ends and clear when you leave the hunting zone or a
-new quest starts. It is polled four times a second from the party data the host already scans, so it adds no memory
+italic and grey. Each row has the hunter's weapon icon (the vector art from `HunterPie.UI/Resources/Icons.xaml`,
+copied into `Assets/WeaponIcons.axaml`), and, when the host has read it, a stats line with attack, elemental attack
+and affinity.
+
+Under the rows is a DPS graph with one line per member (yours is thicker). It plots the same DPS number the rows
+show, sampled once per second of quest time. The history has a fixed size: when it fills up every second sample is
+dropped and the sampling interval doubles, so a whole quest always fits and drawing it never gets more expensive.
+
+In layout edit mode two checkboxes turn the graph and the stats line on or off; the choice is saved in
+`overlay.json` next to the widget positions.
+
+The final numbers stay on screen after a quest ends and clear when you leave the hunting zone or a new quest
+starts. The meter is polled four times a second from the party data the host already scans, so it adds no memory
 reads. Players already in the party when the overlay first looks count from the start of the quest, so attaching
 mid-quest gives each of them a DPS averaged over the whole quest.

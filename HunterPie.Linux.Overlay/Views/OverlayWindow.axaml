@@ -24,6 +24,10 @@
                            Foreground="#FFB84D" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center" />
                 <TextBlock Classes="muted" HorizontalAlignment="Center"
                            Text="Esc saves and leaves edit mode, Ctrl+Q quits the overlay." />
+                <StackPanel Orientation="Horizontal" Spacing="16" HorizontalAlignment="Center">
+                    <CheckBox Content="Damage graph" IsChecked="{Binding Damage.ShowGraph}" />
+                    <CheckBox Content="Player stats" IsChecked="{Binding Damage.ShowStats}" />
+                </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
                     <Button Name="DoneButton" Content="Save &amp; exit edit mode" Click="OnDoneClick" />
                     <Button Name="QuitButton" Content="Quit overlay" Click="OnQuitClick" />

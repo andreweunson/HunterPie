@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace HunterPie.Linux.Overlay.Services;
 
-public sealed class WidgetPlacement
+public class WidgetPlacement
 {
     public double X { get; set; }
     public double Y { get; set; }
@@ -18,6 +18,21 @@ public sealed class WidgetPlacement
     {
         X = x;
         Y = y;
+    }
+}
+
+/// <summary>The damage widget's position plus what it shows</summary>
+public sealed class DamagePlacement : WidgetPlacement
+{
+    public bool ShowGraph { get; set; } = true;
+    public bool ShowStats { get; set; } = true;
+
+    public DamagePlacement()
+    {
+    }
+
+    public DamagePlacement(double x, double y) : base(x, y)
+    {
     }
 }
 
@@ -37,7 +52,7 @@ public sealed class OverlaySettings
 
     public WidgetPlacement Monsters { get; set; } = new(40, 150);
 
-    public WidgetPlacement Damage { get; set; } = new(40, 360);
+    public DamagePlacement Damage { get; set; } = new(40, 360);
 
     /// <summary>Index of the monitor the game is on (0 = primary)</summary>
     public int Screen { get; set; }

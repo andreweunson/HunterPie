@@ -110,6 +110,19 @@ public partial class OverlayWindow : Window
                 UpdateClickThrough();
         };
 
+        viewModel.Damage.ShowGraph = _settings.Damage.ShowGraph;
+        viewModel.Damage.ShowStats = _settings.Damage.ShowStats;
+        viewModel.Damage.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is not (nameof(DamageViewModel.ShowGraph) or nameof(DamageViewModel.ShowStats)))
+                return;
+
+            _settings.Damage.ShowGraph = viewModel.Damage.ShowGraph;
+            _settings.Damage.ShowStats = viewModel.Damage.ShowStats;
+            Trace($"Damage widget options: graph={_settings.Damage.ShowGraph}, stats={_settings.Damage.ShowStats}");
+            SaveSettings();
+        };
+
         MakeDraggable(QuestHost, _settings.Quest);
         MakeDraggable(MonstersHost, _settings.Monsters);
         MakeDraggable(DamageHost, _settings.Damage);
