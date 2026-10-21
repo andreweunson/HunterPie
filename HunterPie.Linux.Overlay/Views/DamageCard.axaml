@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HunterPie.Linux.Overlay.ViewModels"
+             xmlns:views="using:HunterPie.Linux.Overlay.Views"
+             x:Class="HunterPie.Linux.Overlay.Views.DamageCard"
+             x:DataType="vm:DamageViewModel">
+    <UserControl.DataTemplates>
+        <DataTemplate x:DataType="vm:PlayerDamageViewModel">
+            <Grid Height="26">
+                <views:ShareBar Percent="{Binding Share}" Slot="{Binding Slot}" IsSelf="{Binding IsSelf}" />
+                <DockPanel Margin="8,0" LastChildFill="True">
+                    <TextBlock Classes="number" DockPanel.Dock="Right" Width="38" TextAlignment="Right"
+                               VerticalAlignment="Center" Text="{Binding ShareText}" />
+                    <TextBlock Classes="number" DockPanel.Dock="Right" Width="64" TextAlignment="Right"
+                               VerticalAlignment="Center" Text="{Binding DamageText}" />
+                    <TextBlock Classes="muted" DockPanel.Dock="Right" Width="56" TextAlignment="Right"
+                               VerticalAlignment="Center" FontFamily="monospace" Text="{Binding DpsText}" />
+                    <TextBlock Classes="name" Classes.companion="{Binding IsCompanion}"
+                               VerticalAlignment="Center" Text="{Binding Name}" />
+                </DockPanel>
+            </Grid>
+        </DataTemplate>
+    </UserControl.DataTemplates>
+
+    <Border Classes="widget" Width="340">
+        <StackPanel Spacing="6">
+            <DockPanel>
+                <TextBlock Classes="muted" DockPanel.Dock="Right" VerticalAlignment="Center" Text="{Binding Summary}" />
+                <TextBlock Classes="title" Text="Damage" />
+            </DockPanel>
+
+            <ItemsControl ItemsSource="{Binding Rows}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Spacing="4" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+
+            <ItemsControl ItemsSource="{Binding SampleRows}" IsVisible="{Binding ShowSample}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Spacing="4" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+        </StackPanel>
+    </Border>
+</UserControl>

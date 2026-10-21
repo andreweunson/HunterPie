@@ -38,6 +38,16 @@
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
 
+    <Style Selector="TextBlock.name">
+        <Setter Property="Foreground" Value="{DynamicResource WidgetText}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+    <Style Selector="TextBlock.name.companion">
+        <Setter Property="Foreground" Value="{DynamicResource WidgetMutedText}" />
+        <Setter Property="FontStyle" Value="Italic" />
+    </Style>
+
     <Style Selector="TextBlock.muted">
         <Setter Property="Foreground" Value="{DynamicResource WidgetMutedText}" />
         <Setter Property="FontSize" Value="12" />

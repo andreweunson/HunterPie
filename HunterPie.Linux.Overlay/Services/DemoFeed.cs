@@ -13,6 +13,7 @@ internal sealed class DemoFeed : IDisposable
     private readonly MonsterViewModel _second = new("Rathian", 9200, 9200, false);
     private readonly DispatcherTimer _timer;
     private readonly DateTime _start = DateTime.UtcNow;
+    private long _lastDamage;
 
     public DemoFeed(OverlayViewModel viewModel)
     {
@@ -34,6 +35,12 @@ internal sealed class DemoFeed : IDisposable
         double cycle = seconds % 60 / 60;
         _first.Set("Quematrice", 5760 * (1 - cycle), 5760, cycle is > 0.3 and < 0.5);
         _second.Set("Rathian", 9200 * (1 - cycle * 0.7), 9200, false);
+
+        if (System.Diagnostics.Stopwatch.GetElapsedTime(_lastDamage) >= TimeSpan.FromMilliseconds(250))
+        {
+            _lastDamage = System.Diagnostics.Stopwatch.GetTimestamp();
+            _viewModel.Damage.Demo(seconds);
+        }
 
         _viewModel.Quest.Set("Demo hunt", TimeSpan.FromMinutes(50) - TimeSpan.FromSeconds(seconds), TimeSpan.FromSeconds(seconds));
     }

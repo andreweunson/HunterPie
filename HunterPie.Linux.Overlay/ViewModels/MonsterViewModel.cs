@@ -12,6 +12,9 @@ public sealed class MonsterViewModel : ViewModelBase
     private double _percent;
     private string _healthText = string.Empty;
     private bool _isEnraged;
+    private string? _lastRawName;
+    private double _lastHealth = double.NaN;
+    private double _lastMaxHealth = double.NaN;
 
     public IMonster? Source { get; }
 
@@ -61,14 +64,27 @@ public sealed class MonsterViewModel : ViewModelBase
         if (Source is not { } monster)
             return;
 
-        Set(monster.Name.Trim(), monster.Health, monster.MaxHealth, monster.IsEnraged);
+        Set(monster.Name, monster.Health, monster.MaxHealth, monster.IsEnraged);
     }
 
     public void Set(string name, double health, double maxHealth, bool isEnraged)
     {
-        Name = name.Trim();
+        // The game formats names with padding; trimming allocates, so only do it when the name object changed
+        if (!ReferenceEquals(name, _lastRawName))
+        {
+            _lastRawName = name;
+            Name = name.Trim();
+        }
+
+        IsEnraged = isEnraged;
+
+        // Refreshed 10 times a second while health rarely moves: skip the formatting when nothing changed
+        if (health == _lastHealth && maxHealth == _lastMaxHealth)
+            return;
+
+        _lastHealth = health;
+        _lastMaxHealth = maxHealth;
         HealthText = maxHealth > 0 ? $"{health:N0} / {maxHealth:N0}" : "-";
         Percent = maxHealth > 0 ? Math.Clamp(health / maxHealth * 100, 0, 100) : 0;
-        IsEnraged = isEnraged;
     }
 }

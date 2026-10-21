@@ -38,6 +38,7 @@ public partial class OverlayWindow : Window
     {
         Apply(QuestHost, _settings.Quest);
         Apply(MonstersHost, _settings.Monsters);
+        Apply(DamageHost, _settings.Damage);
         UpdateClickThrough();
     }
 
@@ -111,6 +112,7 @@ public partial class OverlayWindow : Window
 
         MakeDraggable(QuestHost, _settings.Quest);
         MakeDraggable(MonstersHost, _settings.Monsters);
+        MakeDraggable(DamageHost, _settings.Damage);
     }
 
     private void CoverScreen()

@@ -58,7 +58,7 @@ Widgets today: monster health (name, bar, numbers, enrage badge; one card per mo
 | Linux platform layer | Done |
 | Headless host | Done; attach, scan loop, shutdown and `--doctor` exercised against a fake game process |
 | Real-game test | Wilds 1.42.0.2 on Proton: attach, login, stage, quest, monster HP and enrage verified. World and Rise not yet tried |
-| Overlay (`HunterPie.Linux.Overlay`) | Monster health + quest timer; verified on a virtual X server (render, click-through, drag, resize, edit toggle) and against a fake game. Not yet seen over the real game |
+| Overlay (`HunterPie.Linux.Overlay`) | Monster health, quest timer and damage meter (per-player damage, share of team damage, DPS counted from when each member was first seen). Monster/quest widgets confirmed over the real game on KDE; the damage meter is verified on a virtual X server and against a fake party only |
 | Remaining WPF widgets (player vitals, abnormalities, damage meter, parts, ailments, settings UI) | Not ported: `HunterPie.UI` is 424 C# / 116 XAML files |
 | Native module (DLL injection), Discord RPC, updater | Windows only for now |
 
@@ -80,3 +80,11 @@ the overlay becomes an unmanaged X11 window, which compositors normally stack ab
 keyboard focus (Esc / Ctrl+Q do nothing, the on-screen buttons and `--toggle-edit` still work). Whether it helps
 depends on your compositor and on whether the game itself runs under XWayland. Not verified against a real
 compositor, only on a bare X server.
+
+### Damage meter
+
+Rows are sorted by damage, with the colour bar showing each member's share of the team total; support hunters are
+italic and grey. The final numbers stay on screen after a quest ends and clear when you leave the hunting zone or a
+new quest starts. It is polled four times a second from the party data the host already scans, so it adds no memory
+reads. Players already in the party when the overlay first looks count from the start of the quest, so attaching
+mid-quest gives each of them a DPS averaged over the whole quest.

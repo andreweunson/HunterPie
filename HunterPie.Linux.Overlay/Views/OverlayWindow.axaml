@@ -57,6 +57,11 @@
                     </StackPanel>
                 </StackPanel>
             </Border>
+
+            <Border Name="DamageHost" Classes="host" Classes.editing="{Binding IsEditing}"
+                    IsVisible="{Binding ShowDamage}">
+                <views:DamageCard DataContext="{Binding Damage}" />
+            </Border>
         </Canvas>
     </Panel>
 </Window>

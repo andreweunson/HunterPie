@@ -37,6 +37,8 @@ public sealed class OverlaySettings
 
     public WidgetPlacement Monsters { get; set; } = new(40, 150);
 
+    public WidgetPlacement Damage { get; set; } = new(40, 360);
+
     /// <summary>Index of the monitor the game is on (0 = primary)</summary>
     public int Screen { get; set; }
 
