@@ -44,6 +44,9 @@ public partial class App : Application
 
             _viewModel.Start();
 
+            InstanceControl.Register();
+            Console.WriteLine($"Overlay running (pid {Environment.ProcessId}). Layout edit mode: run `./HunterPie.Linux.Overlay --toggle-edit` from another terminal, or `kill -USR1 {Environment.ProcessId}`.");
+
             _editSignal = PosixSignalRegistration.Create((PosixSignal)SigUsr1, context =>
             {
                 context.Cancel = true;
@@ -79,7 +82,7 @@ public partial class App : Application
             await HostBootstrapper.InitializeAsync(new HostOptions(false, false, Options.Verbose, null));
 
             _session = DependencyContainer.Get<GameSessionController>();
-            _session.ReportToConsole = false;
+            _session.ReportToConsole = Options.Verbose;
             _session.ContextStarted += (_, context) => _viewModel!.Attach(context);
             _session.ContextEnded += (_, _) => _viewModel!.Detach();
             _session.Start();
@@ -92,6 +95,7 @@ public partial class App : Application
 
     private void Shutdown()
     {
+        InstanceControl.Unregister();
         _demo?.Dispose();
         _viewModel?.Stop();
         _editSignal?.Dispose();

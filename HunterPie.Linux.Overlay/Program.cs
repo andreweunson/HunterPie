@@ -1,4 +1,5 @@
 using Avalonia;
+using HunterPie.Linux.Overlay.Services;
 
 namespace HunterPie.Linux.Overlay;
 
@@ -26,6 +27,9 @@ internal static class Program
             Console.WriteLine(OverlayOptions.Usage);
             return 0;
         }
+
+        if (options.ToggleEdit && OperatingSystem.IsLinux())
+            return InstanceControl.ToggleEdit();
 
         if (!OperatingSystem.IsLinux())
         {

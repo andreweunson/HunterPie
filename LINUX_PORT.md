@@ -30,7 +30,7 @@ because the game build number is only in the window title. Rise and Wilds attach
 dotnet build HunterPie.Linux.slnf -c Release
 cd HunterPie.Linux.Overlay/bin/Release/net10.0
 ./HunterPie.Linux.Overlay --demo --edit     # no game needed: fake data, drag widgets into place
-kill -USR1 <pid>                            # toggle edit mode from another terminal (saves ~/.config/HunterPie/overlay.json)
+./HunterPie.Linux.Overlay --toggle-edit     # toggle edit mode from another terminal (same as kill -USR1 <pid>) (saves ~/.config/HunterPie/overlay.json)
 ./HunterPie.Linux.Overlay                   # attach to the game and show monster health + quest timer
 ```
 It is a transparent, always-on-top window covering one monitor (`--screen <n>`). Outside edit mode its input region is
@@ -71,3 +71,12 @@ Widgets today: monster health (name, bar, numbers, enrage badge; one card per mo
 Port more widgets onto the overlay (they only need `IContext`: player health/stamina, abnormalities, damage meter, monster
 parts and ailments), then a settings UI. Click-through is solved with XShape; true global hotkeys are not (the SIGUSR1
 toggle is the stand-in). On native Wayland a layer-shell surface and the GlobalShortcuts portal would replace both.
+
+### Overlay stacking on Wayland
+
+Avalonia has no native Wayland backend, so the overlay is an XWayland window and `Topmost` only asks the compositor for
+"keep above". Compositors may still put a focused fullscreen game above it. `--override-redirect` is an experiment:
+the overlay becomes an unmanaged X11 window, which compositors normally stack above everything. It cannot take
+keyboard focus (Esc / Ctrl+Q do nothing, the on-screen buttons and `--toggle-edit` still work). Whether it helps
+depends on your compositor and on whether the game itself runs under XWayland. Not verified against a real
+compositor, only on a bare X server.

@@ -46,6 +46,15 @@ public partial class OverlayWindow : Window
     private void OnOpened()
     {
         CoverScreen();
+
+        if (App.Options.OverrideRedirect)
+        {
+            if (TryGetPlatformHandle() is { HandleDescriptor: "XID" } handle && X11OverrideRedirect.TryEnable(handle.Handle))
+                Console.WriteLine("Override-redirect enabled: the overlay is unmanaged and has no keyboard focus.");
+            else
+                Console.Error.WriteLine("--override-redirect could not be applied (not an X11/XWayland window?)");
+        }
+
         ApplyLayout();
     }
 
