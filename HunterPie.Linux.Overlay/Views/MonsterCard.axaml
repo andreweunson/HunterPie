@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HunterPie.Linux.Overlay.ViewModels"
+             xmlns:views="using:HunterPie.Linux.Overlay.Views"
+             x:Class="HunterPie.Linux.Overlay.Views.MonsterCard"
+             x:DataType="vm:MonsterViewModel">
+    <Border Classes="widget" Width="300">
+        <StackPanel Spacing="6">
+            <DockPanel LastChildFill="True">
+                <Border Classes="badge" DockPanel.Dock="Right" Margin="8,0,0,0"
+                        VerticalAlignment="Center" IsVisible="{Binding IsEnraged}">
+                    <TextBlock Text="ENRAGED" FontSize="10" FontWeight="Bold" Foreground="White" />
+                </Border>
+                <TextBlock Classes="title" Text="{Binding Name}" />
+            </DockPanel>
+
+            <views:HealthBar Height="8" Percent="{Binding Percent}" />
+
+            <DockPanel>
+                <TextBlock Classes="number" DockPanel.Dock="Right" Text="{Binding PercentText}" />
+                <TextBlock Classes="muted" FontFamily="monospace" Text="{Binding HealthText}" VerticalAlignment="Center" />
+            </DockPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

@@ -1,0 +1,9 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="HunterPie.Linux.Overlay.App"
+             RequestedThemeVariant="Dark">
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://HunterPie.Linux.Overlay/Views/OverlayStyles.axaml" />
+    </Application.Styles>
+</Application>

@@ -1,0 +1,63 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Styles.Resources>
+        <SolidColorBrush x:Key="WidgetBackground" Color="#E0101419" />
+        <SolidColorBrush x:Key="WidgetBorder" Color="#33FFFFFF" />
+        <SolidColorBrush x:Key="WidgetText" Color="#F2F5F7" />
+        <SolidColorBrush x:Key="WidgetMutedText" Color="#9AA4AD" />
+        <SolidColorBrush x:Key="EnrageBrush" Color="#FF5A4F" />
+    </Styles.Resources>
+
+    <Style Selector="Border.widget">
+        <Setter Property="Background" Value="{DynamicResource WidgetBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource WidgetBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="12,10" />
+    </Style>
+
+    <!-- Wraps each draggable widget; the outline only appears in layout edit mode -->
+    <Style Selector="Border.host">
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="2" />
+    </Style>
+    <Style Selector="Border.host.editing">
+        <Setter Property="BorderBrush" Value="#FFB84D" />
+        <Setter Property="Cursor" Value="SizeAll" />
+    </Style>
+
+    <Style Selector="TextBlock.title">
+        <Setter Property="Foreground" Value="{DynamicResource WidgetText}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+
+    <Style Selector="TextBlock.muted">
+        <Setter Property="Foreground" Value="{DynamicResource WidgetMutedText}" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style Selector="TextBlock.number">
+        <Setter Property="Foreground" Value="{DynamicResource WidgetText}" />
+        <Setter Property="FontFamily" Value="monospace" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <Style Selector="TextBlock.timer">
+        <Setter Property="Foreground" Value="{DynamicResource WidgetText}" />
+        <Setter Property="FontFamily" Value="monospace" />
+        <Setter Property="FontSize" Value="26" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="Border.badge">
+        <Setter Property="Background" Value="{DynamicResource EnrageBrush}" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="6,1" />
+    </Style>
+
+</Styles>

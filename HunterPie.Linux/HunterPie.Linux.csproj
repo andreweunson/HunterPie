@@ -12,6 +12,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="HunterPie.Linux.Overlay" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\HunterPie.Core\HunterPie.Core.csproj" />
     <ProjectReference Include="..\HunterPie.DI\HunterPie.DI.csproj" />
     <ProjectReference Include="..\HunterPie.Integrations\HunterPie.Integrations.csproj" />

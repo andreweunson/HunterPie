@@ -6,7 +6,8 @@
       "HunterPie.DI\\HunterPie.DI.csproj",
       "HunterPie.Integrations\\HunterPie.Integrations.csproj",
       "HunterPie.Platforms\\HunterPie.Platforms.csproj",
-      "HunterPie.Linux\\HunterPie.Linux.csproj"
+      "HunterPie.Linux\\HunterPie.Linux.csproj",
+      "HunterPie.Linux.Overlay\\HunterPie.Linux.Overlay.csproj"
     ]
   }
 }

@@ -26,6 +26,21 @@ internal sealed class GameSessionController(
     private Context? _context;
     private ConsoleReporter? _reporter;
 
+    /// <summary>
+    /// Raised with the new game context before the scan loop starts, so listeners never miss the first events
+    /// </summary>
+    public event EventHandler<Context>? ContextStarted;
+
+    /// <summary>
+    /// Raised when the game closes, before the context is disposed
+    /// </summary>
+    public event EventHandler? ContextEnded;
+
+    /// <summary>
+    /// Print events to the console. Turn off for hosts that show them some other way (the overlay).
+    /// </summary>
+    public bool ReportToConsole { get; set; } = true;
+
     public void Start()
     {
         _watcher.ProcessStart += OnProcessStart;
@@ -41,7 +56,10 @@ internal sealed class GameSessionController(
             _context = _gameContextService.Get(e.Game);
             _logger.Info($"Attached to {e.Game.Name} (pid {e.Game.SystemProcess.Id}), scanning...");
 
-            _reporter = new ConsoleReporter(_context);
+            if (ReportToConsole)
+                _reporter = new ConsoleReporter(_context);
+
+            ContextStarted?.Invoke(this, _context);
             _scanService.Start(_scanCancellation.Token);
         }
         catch (Exception ex)
@@ -54,6 +72,7 @@ internal sealed class GameSessionController(
     private void OnProcessExit(object? sender, EventArgs e)
     {
         _logger.Info("Game has closed");
+        ContextEnded?.Invoke(this, EventArgs.Empty);
         Teardown();
     }
 

@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:HunterPie.Linux.Overlay.ViewModels"
+             x:Class="HunterPie.Linux.Overlay.Views.QuestCard"
+             x:DataType="vm:QuestViewModel">
+    <Border Classes="widget" MinWidth="160">
+        <StackPanel Spacing="2">
+            <TextBlock Classes="muted" Text="{Binding Name}" IsVisible="{Binding HasName}" MaxWidth="260"
+                       TextTrimming="CharacterEllipsis" />
+            <TextBlock Classes="timer" Text="{Binding TimeLeft}" />
+            <TextBlock Classes="muted">
+                <Run Text="elapsed " /><Run Text="{Binding Elapsed}" />
+            </TextBlock>
+        </StackPanel>
+    </Border>
+</UserControl>

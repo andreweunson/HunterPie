@@ -1,0 +1,53 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:HunterPie.Linux.Overlay.ViewModels"
+        xmlns:views="using:HunterPie.Linux.Overlay.Views"
+        x:Class="HunterPie.Linux.Overlay.Views.OverlayWindow"
+        x:DataType="vm:OverlayViewModel"
+        Title="HunterPie Overlay"
+        SystemDecorations="None"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        CanResize="False"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent">
+
+    <Panel>
+        <!-- Dims the screen in edit mode so the draggable widgets stand out -->
+        <Border Background="#55000000" IsVisible="{Binding IsEditing}" IsHitTestVisible="False" />
+
+        <TextBlock Text="Layout edit mode: drag widgets, scroll to resize. Send SIGUSR1 (kill -USR1 &lt;pid&gt;) to save and leave."
+                   IsVisible="{Binding IsEditing}" IsHitTestVisible="False"
+                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,16,0,0"
+                   Foreground="#FFB84D" FontSize="14" FontWeight="SemiBold" />
+
+        <Canvas>
+            <Border Name="QuestHost" Classes="host" Classes.editing="{Binding IsEditing}"
+                    IsVisible="{Binding ShowQuest}">
+                <views:QuestCard DataContext="{Binding Quest}" />
+            </Border>
+
+            <Border Name="MonstersHost" Classes="host" Classes.editing="{Binding IsEditing}"
+                    IsVisible="{Binding ShowMonsters}">
+                <StackPanel Spacing="8">
+                    <ItemsControl ItemsSource="{Binding Monsters}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Spacing="8" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:MonsterViewModel">
+                                <views:MonsterCard DataContext="{Binding}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <StackPanel IsVisible="{Binding ShowSample}">
+                        <views:MonsterCard DataContext="{Binding Sample}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Canvas>
+    </Panel>
+</Window>

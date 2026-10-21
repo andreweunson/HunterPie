@@ -25,6 +25,24 @@ Linux blocks reading other processes by default (Yama `ptrace_scope=1`). Either
 Used for the window title and focus (works on X11 and XWayland, which Proton uses). Monster Hunter: World needs it
 because the game build number is only in the window title. Rise and Wilds attach without it.
 
+## Overlay (Avalonia)
+```bash
+dotnet build HunterPie.Linux.slnf -c Release
+cd HunterPie.Linux.Overlay/bin/Release/net10.0
+./HunterPie.Linux.Overlay --demo --edit     # no game needed: fake data, drag widgets into place
+kill -USR1 <pid>                            # leave edit mode (saves ~/.config/HunterPie/overlay.json), again to re-enter
+./HunterPie.Linux.Overlay                   # attach to the game and show monster health + quest timer
+```
+It is a transparent, always-on-top window covering one monitor (`--screen <n>`). Outside edit mode its input region is
+empty (XShape), so mouse and keyboard go to the game. In edit mode drag a widget to move it and scroll over it to resize.
+Bind `kill -USR1 $(pidof HunterPie.Linux.Overlay)` to a key in your desktop environment to get a "toggle layout" hotkey.
+
+Requirements: a compositing window manager (otherwise the transparent window is drawn black) and the game in
+**borderless windowed** mode; overlays cannot draw over exclusive fullscreen. Works on X11 and XWayland. The first
+build prints a blocked-connection warning for Avalonia build telemetry; set `AVALONIA_TELEMETRY_OPTOUT=1` to silence it.
+
+Widgets today: monster health (name, bar, numbers, enrage badge; one card per monster) and quest timer.
+
 ## How it works
 - `HunterPie.Platforms/Linux/` implements the platform interfaces: process discovery (`/proc/*/cmdline` + the PE image
   in `/proc/<pid>/maps`, which also gives the `BASE` address), memory (`/proc/<pid>/mem`), game version (PE
@@ -40,7 +58,8 @@ because the game build number is only in the window title. Rise and Wilds attach
 | Linux platform layer | Done |
 | Headless host | Done; attach, scan loop, shutdown and `--doctor` exercised against a fake game process |
 | Real-game test | Wilds 1.42.0.2 on Proton: attach, login, stage, quest, monster HP and enrage verified. World and Rise not yet tried |
-| Overlay UI (WPF -> Avalonia) | Not started: `HunterPie.UI` + `HunterPie` are 540 C# / 161 XAML files |
+| Overlay (`HunterPie.Linux.Overlay`) | Monster health + quest timer; verified on a virtual X server (render, click-through, drag, resize, edit toggle) and against a fake game. Not yet seen over the real game |
+| Remaining WPF widgets (player vitals, abnormalities, damage meter, parts, ailments, settings UI) | Not ported: `HunterPie.UI` is 424 C# / 116 XAML files |
 | Native module (DLL injection), Discord RPC, updater | Windows only for now |
 
 ## Known limits of the headless host
@@ -48,6 +67,7 @@ because the game build number is only in the window title. Rise and Wilds attach
 - Wilds/World/Rise game-specific context initializers (native module, integrity patchers) are Windows-only and not run.
 - `config.json` is written next to the binary (same as Windows); move it to XDG when the install path matters.
 
-## Next: UI
-Port `HunterPie.UI` to Avalonia on top of this host. The hard parts are the click-through transparent overlay window
-and global hotkeys (X11 input shape / XGrabKey, or layer-shell and the GlobalShortcuts portal on Wayland).
+## Next
+Port more widgets onto the overlay (they only need `IContext`: player health/stamina, abnormalities, damage meter, monster
+parts and ailments), then a settings UI. Click-through is solved with XShape; true global hotkeys are not (the SIGUSR1
+toggle is the stand-in). On native Wayland a layer-shell surface and the GlobalShortcuts portal would replace both.
