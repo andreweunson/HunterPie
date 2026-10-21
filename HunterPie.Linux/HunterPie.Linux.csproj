@@ -32,7 +32,7 @@
   <ItemGroup>
     <Content Include="..\HunterPie\Address\*.map" LinkBase="Address" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\HunterPie\Game\**\Data\*.xml" LinkBase="Game" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="..\Localization\**\*.xml" LinkBase="Languages" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\Localization')" />
+    <Content Include="..\Localization\localization\*.xml" LinkBase="Languages" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\Localization')" />
   </ItemGroup>
 
 </Project>

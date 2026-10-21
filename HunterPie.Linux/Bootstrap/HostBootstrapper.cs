@@ -32,6 +32,11 @@ internal static class HostBootstrapper
         // Log output goes to the terminal, via the Linux writer registered by the platform module
         LoggerFactory.Add(DependencyContainer.Get<INativeLogWriter>());
 
+        if (!File.Exists(Path.Combine(ClientInfo.LanguagesPath, "en-us.xml")))
+            LoggerFactory.Create().Warning(
+                "Localization files were not found, so monster and quest names will show as ids. " +
+                "Run `git submodule update --init` and rebuild.");
+
         if (options.Verbose)
             ClientConfig.Config.Development.ClientLogLevel.Value = LogLevel.Debug;
     }

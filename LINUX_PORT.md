@@ -7,6 +7,7 @@ but it runs the same Core + Integrations code as the Windows client and prints p
 ## Build and run
 
 ```bash
+git submodule update --init                        # monster/quest names come from the Localization submodule
 dotnet build HunterPie.Linux.slnf -c Release      # the WPF projects cannot build on Linux, so use the filter
 cd HunterPie.Linux/bin/Release/net10.0
 ./HunterPie.Linux --doctor                         # checks the machine and looks for a running game
@@ -38,12 +39,12 @@ because the game build number is only in the window title. Rise and Wilds attach
 | Core, DI, Integrations | Portable, unchanged except `ProcessCandidate` / `IsAdmin` |
 | Linux platform layer | Done |
 | Headless host | Done; attach, scan loop, shutdown and `--doctor` exercised against a fake game process |
-| Real-game test | **Not done yet**: needs a machine with the game. Run `--doctor` first and report what it prints |
+| Real-game test | Wilds 1.42.0.2 on Proton: attach, login, stage, quest, monster HP and enrage verified. World and Rise not yet tried |
 | Overlay UI (WPF -> Avalonia) | Not started: `HunterPie.UI` + `HunterPie` are 540 C# / 161 XAML files |
 | Native module (DLL injection), Discord RPC, updater | Windows only for now |
 
 ## Known limits of the headless host
-- No localization submodule needed: missing language files fall back to keys.
+- Only `en-us.xml` is loaded, whatever language is set in `config.json`. Without the Localization submodule, names show as ids.
 - Wilds/World/Rise game-specific context initializers (native module, integrity patchers) are Windows-only and not run.
 - `config.json` is written next to the binary (same as Windows); move it to XDG when the install path matters.
 
