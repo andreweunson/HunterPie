@@ -43,6 +43,13 @@ public partial class OverlayWindow : Window
 
     public void SaveSettings() => _settings.Save();
 
+    /// <summary>Debug output for input and edit-mode problems, only with --verbose</summary>
+    private static void Trace(string message)
+    {
+        if (App.Options.Verbose)
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}][DEBUG] [Overlay] {message}");
+    }
+
     private void OnOpened()
     {
         CoverScreen();
@@ -69,9 +76,17 @@ public partial class OverlayWindow : Window
         ApplyLayout();
     }
 
-    private void OnDoneClick(object? sender, RoutedEventArgs e) => LeaveEditing();
+    private void OnDoneClick(object? sender, RoutedEventArgs e)
+    {
+        Trace("Save & exit button clicked");
+        LeaveEditing();
+    }
 
-    private void OnQuitClick(object? sender, RoutedEventArgs e) => Close();
+    private void OnQuitClick(object? sender, RoutedEventArgs e)
+    {
+        Trace("Quit button clicked");
+        Close();
+    }
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
@@ -111,6 +126,8 @@ public partial class OverlayWindow : Window
         Position = screen.Bounds.Position;
         Width = screen.Bounds.Width / scaling;
         Height = screen.Bounds.Height / scaling;
+
+        Trace($"Covering screen {screens.ToList().IndexOf(screen)} of {screens.Count}: {screen.Bounds.Width}x{screen.Bounds.Height} at {screen.Bounds.X},{screen.Bounds.Y}, scaling {scaling}, handle {TryGetPlatformHandle()?.HandleDescriptor ?? "none"}");
     }
 
     private static void Apply(Control host, WidgetPlacement placement)
@@ -125,6 +142,7 @@ public partial class OverlayWindow : Window
     private void UpdateClickThrough()
     {
         bool editing = DataContext is OverlayViewModel { IsEditing: true };
+        Trace($"Edit mode {(editing ? "on" : "off")}, input region {(editing ? "interactive" : "click-through")}");
 
         // ShowActivated=false keeps the game focused when the overlay appears; edit mode needs real input though
         if (editing)
@@ -140,10 +158,24 @@ public partial class OverlayWindow : Window
     private void MakeDraggable(Control host, WidgetPlacement placement)
     {
         Point? grab = null;
+        string name = host.Name ?? "widget";
+
+        void EndDrag(string reason)
+        {
+            if (grab is null)
+                return;
+
+            grab = null;
+            Trace($"Drag of {name} ended ({reason}) at {placement.X:0},{placement.Y:0}");
+            SaveSettings();
+        }
 
         host.PointerPressed += (_, e) =>
         {
-            if (!ViewModel.IsEditing || !e.GetCurrentPoint(host).Properties.IsLeftButtonPressed)
+            PointerPointProperties properties = e.GetCurrentPoint(host).Properties;
+            Trace($"Pointer pressed on {name}: left={properties.IsLeftButtonPressed}, editing={ViewModel.IsEditing}");
+
+            if (!ViewModel.IsEditing || !properties.IsLeftButtonPressed)
                 return;
 
             grab = e.GetPosition(this) - new Point(placement.X, placement.Y);
@@ -155,6 +187,13 @@ public partial class OverlayWindow : Window
         {
             if (grab is not { } offset)
                 return;
+
+            // A release that never reached us (focus change, grab stolen) must not leave the widget glued to the cursor
+            if (!e.GetCurrentPoint(host).Properties.IsLeftButtonPressed)
+            {
+                EndDrag("button no longer pressed");
+                return;
+            }
 
             Point position = e.GetPosition(this) - offset;
             placement.X = Math.Clamp(position.X, 0, Math.Max(0, Bounds.Width - 40));
@@ -168,10 +207,11 @@ public partial class OverlayWindow : Window
             if (grab is null)
                 return;
 
-            grab = null;
+            EndDrag("released");
             e.Pointer.Capture(null);
-            SaveSettings();
         };
+
+        host.PointerCaptureLost += (_, _) => EndDrag("pointer capture lost");
 
         host.PointerWheelChanged += (_, e) =>
         {
