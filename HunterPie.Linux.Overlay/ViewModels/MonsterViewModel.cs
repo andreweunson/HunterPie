@@ -61,7 +61,7 @@ public sealed class MonsterViewModel : ViewModelBase
         if (Source is not { } monster)
             return;
 
-        Set(monster.Name, monster.Health, monster.MaxHealth, monster.IsEnraged);
+        Set(monster.Name.Trim(), monster.Health, monster.MaxHealth, monster.IsEnraged);
     }
 
     public void Set(string name, double health, double maxHealth, bool isEnraged)

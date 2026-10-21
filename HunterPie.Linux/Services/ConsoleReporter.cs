@@ -52,13 +52,13 @@ internal sealed class ConsoleReporter : IDisposable
         monster.OnCapture += OnMonsterCapture;
         monster.OnEnrageStateChange += OnMonsterEnrageChange;
 
-        _logger.Info($"Monster spawned: {monster.Name} (id {monster.Id})");
+        _logger.Info($"Monster spawned: {NameOf(monster)} (id {monster.Id})");
     }
 
     private void OnMonsterLoad(object? sender, EventArgs e)
     {
         if (sender is IMonster monster)
-            _logger.Info($"Monster loaded: {monster.Name}, {monster.Health:0}/{monster.MaxHealth:0} HP");
+            _logger.Info($"Monster loaded: {NameOf(monster)}, {monster.Health:0}/{monster.MaxHealth:0} HP");
     }
 
     private void OnMonsterHealthChange(object? sender, EventArgs e)
@@ -76,25 +76,25 @@ internal sealed class ConsoleReporter : IDisposable
             _lastReportedPercent[monster] = percent;
         }
 
-        _logger.Info($"{monster.Name}: {monster.Health:0}/{monster.MaxHealth:0} HP ({percent}%)");
+        _logger.Info($"{NameOf(monster)}: {monster.Health:0}/{monster.MaxHealth:0} HP ({percent}%)");
     }
 
     private void OnMonsterDeath(object? sender, EventArgs e)
     {
         if (sender is IMonster monster)
-            _logger.Info($"{monster.Name} was slain");
+            _logger.Info($"{NameOf(monster)} was slain");
     }
 
     private void OnMonsterCapture(object? sender, EventArgs e)
     {
         if (sender is IMonster monster)
-            _logger.Info($"{monster.Name} was captured");
+            _logger.Info($"{NameOf(monster)} was captured");
     }
 
     private void OnMonsterEnrageChange(object? sender, EventArgs e)
     {
         if (sender is IMonster monster)
-            _logger.Info($"{monster.Name} {(monster.IsEnraged ? "became enraged" : "calmed down")}");
+            _logger.Info($"{NameOf(monster)} {(monster.IsEnraged ? "became enraged" : "calmed down")}");
     }
 
     private void OnMonsterDespawn(object? sender, IMonster monster)
@@ -104,11 +104,11 @@ internal sealed class ConsoleReporter : IDisposable
         lock (_lock)
             _lastReportedPercent.Remove(monster);
 
-        _logger.Info($"Monster despawned: {monster.Name}");
+        _logger.Info($"Monster despawned: {NameOf(monster)}");
     }
 
     private void OnQuestStart(object? sender, IQuest quest) =>
-        _logger.Info($"Quest started: {quest.Name} (id {quest.Id}, {quest.Type})");
+        _logger.Info($"Quest started: {(string.IsNullOrWhiteSpace(quest.Name) ? "(unnamed)" : quest.Name.Trim())} (id {quest.Id}, {quest.Type})");
 
     private void OnQuestEnd(object? sender, QuestEndEventArgs e) =>
         _logger.Info($"Quest ended: {e.Status} after {e.TimeElapsed.TotalSeconds:F0}s");
@@ -141,4 +141,7 @@ internal sealed class ConsoleReporter : IDisposable
         foreach (IMonster monster in monsters)
             Unsubscribe(monster);
     }
+
+    // Upstream formats names as "{prefix} {name} {suffix}", which leaves padding when there is no variant
+    private static string NameOf(IMonster monster) => monster.Name.Trim();
 }
