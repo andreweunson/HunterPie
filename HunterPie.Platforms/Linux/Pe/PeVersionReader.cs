@@ -214,11 +214,12 @@ internal static class PeVersionReader
 
                 if (key == "FileVersion" && valueChars > 0)
                 {
-                    int valueStart = Align4(afterKey);
-                    int byteCount = Math.Min(valueChars * 2, block.Length - valueStart);
+                    // Some linkers store the value length in bytes instead of characters, which would read into the next
+                    // entry. The value is NUL terminated either way, so read up to the terminator.
+                    string value = ReadKey(block, Align4(afterKey), out _).Trim();
 
-                    if (byteCount > 0)
-                        return Encoding.Unicode.GetString(block, valueStart, byteCount).TrimEnd('\0').Trim();
+                    if (value.Length > 0)
+                        return value;
                 }
 
                 stringCursor = Align4(stringCursor + stringLength);

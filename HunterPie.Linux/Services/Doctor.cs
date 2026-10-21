@@ -30,7 +30,7 @@ internal static class Doctor
 
         Console.WriteLine();
         Console.WriteLine(gameReadable
-            ? "Ready: a supported game is running and its memory is readable."
+            ? "Ready: a supported game is running, its memory is readable and its version is mapped."
             : ptraceOk
                 ? "No supported game is running (or it was not found). Start the game and run this again."
                 : "Fix the ptrace problem above first, then run this again.");
@@ -99,11 +99,14 @@ internal static class Doctor
             Report(true, "game", $"{name} pid {pid}, image base 0x{image.BaseAddress:X}, version {version}, title '{title}'");
 
             // World's maps are named after the build number in the window title, not the file version
-            if (!name.Equals(SupportedGameNames.MONSTER_HUNTER_WORLD, StringComparison.OrdinalIgnoreCase))
+            bool isWorld = name.Equals(SupportedGameNames.MONSTER_HUNTER_WORLD, StringComparison.OrdinalIgnoreCase);
+            bool mapOk = isWorld || hasMap;
+
+            if (!isWorld)
                 Report(hasMap, "address map", hasMap ? mapName : $"{mapName} is missing: this game version is not supported yet");
 
             bool readable = CanReadMemory(pid, image.BaseAddress);
-            anyReadable |= readable;
+            anyReadable |= readable && mapOk;
         }
 
         if (!anyFound)
