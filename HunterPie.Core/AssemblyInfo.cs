@@ -16,4 +16,5 @@ using System.Runtime.InteropServices;
 
 [assembly: Guid("7445b34e-5ca3-488d-ab42-997e532b7479")]
 [assembly: InternalsVisibleTo("HunterPie")]
+[assembly: InternalsVisibleTo("HunterPie.Linux")]
 [assembly: InternalsVisibleTo("HunterPie.Core.Tests")]

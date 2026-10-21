@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>14.0</LangVersion>
+    <AssemblyName>HunterPie.Linux</AssemblyName>
+    <RootNamespace>HunterPie.Linux</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HunterPie.Core\HunterPie.Core.csproj" />
+    <ProjectReference Include="..\HunterPie.DI\HunterPie.DI.csproj" />
+    <ProjectReference Include="..\HunterPie.Integrations\HunterPie.Integrations.csproj" />
+    <ProjectReference Include="..\HunterPie.Platforms\HunterPie.Platforms.csproj" />
+  </ItemGroup>
+
+  <!--
+    UI-free services that live in the WPF project are shared as source, so the Windows build is untouched.
+    Keep this list to files that don't use System.Windows.
+  -->
+  <ItemGroup>
+    <Compile Include="..\HunterPie\Features\Scan\Service\ScanService.cs" Link="Shared\ScanService.cs" />
+    <Compile Include="..\HunterPie\Features\Scan\Service\IControllableScanService.cs" Link="Shared\IControllableScanService.cs" />
+    <Compile Include="..\HunterPie\Features\Languages\Repository\ScopedLocalizationRepository.cs" Link="Shared\ScopedLocalizationRepository.cs" />
+  </ItemGroup>
+
+  <!-- Game data the Core repositories read through relative paths -->
+  <ItemGroup>
+    <Content Include="..\HunterPie\Address\*.map" LinkBase="Address" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\HunterPie\Game\**\Data\*.xml" LinkBase="Game" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\Localization\**\*.xml" LinkBase="Languages" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\Localization')" />
+  </ItemGroup>
+
+</Project>
