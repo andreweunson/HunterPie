@@ -38,6 +38,8 @@ internal static class AilmentStyle
 
     private static readonly ConcurrentDictionary<string, string> Names = new();
 
+    public static IBrush FlinchBrush { get; } = Brush("#E3A857");
+
     public static IBrush BrushFor(string id) => Brushes.GetValueOrDefault(id, Unknown);
 
     /// <summary>Localised name from the language file, or a readable version of the id when there is none</summary>

@@ -21,7 +21,6 @@ public sealed class AilmentViewModel : ViewModelBase
     private int _count = -1;
     private int _lastWholeSeconds = -1;
     private long _lastChange;
-    private int _lastLoggedStep = -1;
 
     private double _timerFraction;
     private double _buildUpFraction;
@@ -34,10 +33,11 @@ public sealed class AilmentViewModel : ViewModelBase
     public string Id { get; }
 
     /// <summary>
-    /// The game's "exhaust" entries are being investigated: one of them behaves like a flinch gauge (it fills as the
-    /// monster is hit, resets with a higher maximum when it flinches). Only these are logged with --verbose.
+    /// The game's ailment table calls entry 14 "exhaust", but on a real hunt it is a gauge that fills as the monster is
+    /// hit, decays slowly, and resets with a larger maximum when it flinches; its timer never runs. The real exhaust
+    /// is the monster's stamina object (see the stamina bar), so this entry is shown as the flinch gauge.
     /// </summary>
-    private bool IsLogged => Id == "AILMENT_EXHAUST";
+    private static bool IsFlinchGauge(IMonsterAilment ailment) => ailment.Id == "AILMENT_EXHAUST" && ailment.Definition.Id == 14;
 
     public string Name { get; }
 
@@ -62,8 +62,9 @@ public sealed class AilmentViewModel : ViewModelBase
     {
         Source = source;
         Id = source.Id;
-        Name = AilmentStyle.NameFor(source.Id);
-        Brush = AilmentStyle.BrushFor(source.Id);
+        bool flinch = IsFlinchGauge(source);
+        Name = flinch ? "Flinch" : AilmentStyle.NameFor(source.Id);
+        Brush = flinch ? AilmentStyle.FlinchBrush : AilmentStyle.BrushFor(source.Id);
         Refresh();
     }
 
@@ -121,22 +122,6 @@ public sealed class AilmentViewModel : ViewModelBase
 
         UpdateText(changed);
         UpdateVisibility();
-
-        // Only exhaust is logged for now: its meaning is still being worked out, and logging every ailment drowns the output
-        if (changed && App.Options.Verbose && IsLogged)
-            LogChange();
-    }
-
-    // Debug output (--verbose, exhaust entries only): one line per 5% step of the gauge and on every timer or counter change
-    private void LogChange()
-    {
-        int step = (int)(BuildUpFraction * 20);
-
-        if (step == _lastLoggedStep && !IsTimerActive)
-            return;
-
-        _lastLoggedStep = step;
-        Console.WriteLine($"[{DateTime.Now:HH:mm:ss}][DEBUG] [Ailment] {Id} (game id {Source?.Definition.Id}): build-up {_buildUp:0}/{_maxBuildUp:0} ({BuildUpFraction * 100:0}%), timer {_timer:0.0}/{_maxTimer:0.0}, count {_count}");
     }
 
     private void UpdateText(bool changed)

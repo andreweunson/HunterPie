@@ -111,9 +111,10 @@ Ailments: under the health bar each monster shows a ring per ailment, as in the 
 ailment's colour) is the time left while the effect is active, with the countdown below it; the inner blue arc is the
 build-up towards triggering it, with a percentage; the number in the middle is how often it has been inflicted. Enrage
 is the first ring. A ring appears when its values start changing and hides 15 s after the last change. Entries the game
-lists without a name are skipped. The game's two "Exhaust" entries are still being worked out: one of them behaves like a flinch gauge (it fills as the monster is
-hit and resets, with a higher maximum, when it flinches). With `--verbose` their changes are logged
-(`[Ailment] AILMENT_EXHAUST (game id N) ...`). The Ailments checkbox in the settings window turns the row off. Names come from the
+lists without a name are skipped. The game's ailment table has two "Exhaust" entries, but id 14 is the only one monsters report and on a real hunt it behaves
+like a flinch gauge (it fills with hits and resets with a larger maximum when the monster flinches), so it is labelled
+"Flinch". The real exhaust is the monster's stamina: when the bar runs out the game takes a moment, then resets it to the
+length of the exhaustion and counts it down. The stamina bar turns teal and reads "EXHAUSTED 38s" for that. The Ailments checkbox in the settings window turns the row off. Names come from the
 language file (`Languages/en-us.xml`), colours match the Windows client.
 
 ### Damage meter

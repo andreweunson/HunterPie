@@ -3,6 +3,7 @@ using Avalonia.Threading;
 using System.Collections.ObjectModel;
 using HunterPie.Core.Game.Entity.Enemy;
 using HunterPie.Core.Game.Enums;
+using HunterPie.Integrations.Datasources.MonsterHunterWilds.Entity.Enemy;
 using HunterPie.Linux.Overlay.Services;
 
 namespace HunterPie.Linux.Overlay.ViewModels;
@@ -34,6 +35,8 @@ public sealed class MonsterViewModel : ViewModelBase, IDisposable
     private double _staminaPercent;
     private string _staminaText = string.Empty;
     private bool _hasStamina;
+    private bool _isExhausted;
+    private bool _lastExhausted;
 
     private double _lastThreshold = double.NaN;
     private double _captureAt;
@@ -91,7 +94,14 @@ public sealed class MonsterViewModel : ViewModelBase, IDisposable
     /// <summary>0 to 100, how full the stamina bar is</summary>
     public double StaminaPercent { get => _staminaPercent; private set => Set(ref _staminaPercent, value); }
 
+    /// <summary>"STA 620 / 1,000", or "EXHAUSTED 38s" while the monster is exhausted</summary>
     public string StaminaText { get => _staminaText; private set => Set(ref _staminaText, value); }
+
+    /// <summary>
+    /// Exhausted: the stamina bar now counts the exhaustion down (the game reuses it, resetting to the exhaustion's
+    /// length), so it is drawn in another colour
+    /// </summary>
+    public bool IsExhausted { get => _isExhausted; private set => Set(ref _isExhausted, value); }
 
     /// <summary>False for monsters that report no stamina (the bar is hidden then)</summary>
     public bool HasStamina { get => _hasStamina; private set => Set(ref _hasStamina, value); }
@@ -152,7 +162,7 @@ public sealed class MonsterViewModel : ViewModelBase, IDisposable
             return;
 
         Set(monster.Name, monster.Health, monster.MaxHealth, monster.IsEnraged);
-        SetStamina(monster.Stamina, monster.MaxStamina);
+        SetStamina(monster.Stamina, monster.MaxStamina, monster is MHWildsMonster { IsExhausted: true });
         SetCapture(monster.CaptureThreshold);
         SetDetails(monster.Weaknesses, monster.Variant);
         RefreshAilments();
@@ -237,16 +247,20 @@ public sealed class MonsterViewModel : ViewModelBase, IDisposable
         Percent = maxHealth > 0 ? Math.Clamp(health / maxHealth * 100, 0, 100) : 0;
     }
 
-    public void SetStamina(double stamina, double maxStamina)
+    public void SetStamina(double stamina, double maxStamina, bool exhausted = false)
     {
-        if (stamina == _lastStamina && maxStamina == _lastMaxStamina)
+        if (stamina == _lastStamina && maxStamina == _lastMaxStamina && exhausted == _lastExhausted)
             return;
 
         _lastStamina = stamina;
         _lastMaxStamina = maxStamina;
+        _lastExhausted = exhausted;
+        IsExhausted = exhausted && maxStamina > 0;
         HasStamina = maxStamina > 0;
         StaminaPercent = maxStamina > 0 ? Math.Clamp(stamina / maxStamina * 100, 0, 100) : 0;
-        StaminaText = maxStamina > 0 ? $"{stamina:N0} / {maxStamina:N0}" : string.Empty;
+        StaminaText = maxStamina <= 0 ? string.Empty
+            : exhausted ? $"EXHAUSTED {Math.Ceiling(stamina):0}s"
+            : $"STA {stamina:N0} / {maxStamina:N0}";
     }
 
     /// <summary>The threshold is a fraction of max health (0.35 = capturable below 35%)</summary>

@@ -77,6 +77,12 @@ public sealed class MHWildsMonster : CommonMonster
 
     public override float MaxStamina { get; protected set; }
 
+    /// <summary>
+    /// The monster is exhausted right now. While it is, <see cref="Stamina"/> and <see cref="MaxStamina"/> are the
+    /// remaining and total seconds of the exhaustion instead of the stamina gauge.
+    /// </summary>
+    public bool IsExhausted { get; private set; }
+
     private float _captureThreshold;
     public override float CaptureThreshold
     {
@@ -230,6 +236,8 @@ public sealed class MHWildsMonster : CommonMonster
             offsets: AddressMap.GetOffsets("Monster::Stamina")
         );
 
+
+        IsExhausted = ailment.IsActive == 1;
 
         if (ailment.IsActive == 1)
         {

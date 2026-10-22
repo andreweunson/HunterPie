@@ -45,14 +45,14 @@
                 <!-- Two nested panels: the outer one is the user's option, the inner one is whether there is data -->
                 <StackPanel IsVisible="{Binding Options.ShowStamina}">
                     <StackPanel IsVisible="{Binding HasStamina}">
-                        <views:StaminaBar Height="6" Percent="{Binding StaminaPercent}" />
+                        <views:StaminaBar Height="6" Percent="{Binding StaminaPercent}" IsExhausted="{Binding IsExhausted}" />
                     </StackPanel>
                 </StackPanel>
 
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Right" IsVisible="{Binding Options.ShowStamina}">
                         <TextBlock Classes="muted" FontFamily="monospace" FontSize="11" IsVisible="{Binding HasStamina}"
-                                   Text="{Binding StaminaText, StringFormat='STA {0}'}" />
+                                   Text="{Binding StaminaText}" />
                     </StackPanel>
                     <StackPanel IsVisible="{Binding Options.ShowWeaknesses}">
                         <ItemsControl ItemsSource="{Binding Weaknesses}" IsVisible="{Binding HasWeaknesses}">

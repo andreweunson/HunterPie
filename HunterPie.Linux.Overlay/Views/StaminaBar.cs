@@ -10,6 +10,10 @@ public sealed class StaminaBar : Control
     public static readonly StyledProperty<double> PercentProperty =
         AvaloniaProperty.Register<StaminaBar, double>(nameof(Percent));
 
+    public static readonly StyledProperty<bool> IsExhaustedProperty =
+        AvaloniaProperty.Register<StaminaBar, bool>(nameof(IsExhausted));
+
+    private static readonly IBrush ExhaustedFill = new SolidColorBrush(Color.Parse("#74D4B1"));
     private static readonly IBrush Track = new SolidColorBrush(Color.Parse("#33FFFFFF"));
     private static readonly IBrush Fill = new SolidColorBrush(Color.Parse("#F5D06B"));
 
@@ -17,13 +21,20 @@ public sealed class StaminaBar : Control
 
     static StaminaBar()
     {
-        AffectsRender<StaminaBar>(PercentProperty);
+        AffectsRender<StaminaBar>(PercentProperty, IsExhaustedProperty);
     }
 
     public double Percent
     {
         get => GetValue(PercentProperty);
         set => SetValue(PercentProperty, value);
+    }
+
+    /// <summary>The bar shows the exhaustion running out instead of the stamina gauge</summary>
+    public bool IsExhausted
+    {
+        get => GetValue(IsExhaustedProperty);
+        set => SetValue(IsExhaustedProperty, value);
     }
 
     public override void Render(DrawingContext context)
@@ -34,6 +45,6 @@ public sealed class StaminaBar : Control
         double percent = Math.Clamp(Percent, 0, 100);
 
         if (percent > 0)
-            context.DrawRectangle(Fill, null, new RoundedRect(new Rect(0, 0, Math.Max(area.Width * percent / 100, Radius * 2), area.Height), Radius));
+            context.DrawRectangle(IsExhausted ? ExhaustedFill : Fill, null, new RoundedRect(new Rect(0, 0, Math.Max(area.Width * percent / 100, Radius * 2), area.Height), Radius));
     }
 }

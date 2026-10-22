@@ -72,7 +72,12 @@ internal sealed class DemoFeed : IDisposable
         _second.RefreshAilments();
 
         // Stamina drains and refills so the bar can be seen moving
-        _first.SetStamina(1000 * (1 - seconds % 20 / 20), 1000);
+        // (stamina runs out over 16 s, then the monster is exhausted for 8 s, as the game does it)
+        double phase = seconds % 24;
+        if (phase < 16)
+            _first.SetStamina(1000 * (1 - phase / 16), 1000);
+        else
+            _first.SetStamina(8 * (1 - (phase - 16) / 8), 8, exhausted: true);
         _second.SetStamina(800 * (seconds % 30 / 30), 800);
 
         if (System.Diagnostics.Stopwatch.GetElapsedTime(_lastDamage) >= TimeSpan.FromMilliseconds(250))
