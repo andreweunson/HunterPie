@@ -22,7 +22,6 @@ public sealed class AilmentViewModel : ViewModelBase
     private int _lastWholeSeconds = -1;
     private long _lastChange;
     private int _lastLoggedStep = -1;
-    private float _rawBuildUp;
 
     private double _timerFraction;
     private double _buildUpFraction;
@@ -35,11 +34,10 @@ public sealed class AilmentViewModel : ViewModelBase
     public string Id { get; }
 
     /// <summary>
-    /// Exhaust is the exception: the game's "build-up" for it is the monster's remaining stamina (the same value the
-    /// stamina bar shows). It starts full and refills on its own, and the monster is exhausted when it hits zero. So the
-    /// gauge counts down towards the effect, and "closeness to exhausted" is what the ring should show.
+    /// The game's "exhaust" entries are being investigated: one of them behaves like a flinch gauge (it fills as the
+    /// monster is hit, resets with a higher maximum when it flinches). Only these are logged with --verbose.
     /// </summary>
-    private bool InvertsBuildUp => Id == "AILMENT_EXHAUST";
+    private bool IsLogged => Id == "AILMENT_EXHAUST";
 
     public string Name { get; }
 
@@ -109,11 +107,6 @@ public sealed class AilmentViewModel : ViewModelBase
             changed = true;
         }
 
-        _rawBuildUp = buildUp;
-
-        if (InvertsBuildUp && maxBuildUp > 0)
-            buildUp = Math.Clamp(maxBuildUp - buildUp, 0, maxBuildUp);
-
         if (buildUp != _buildUp || maxBuildUp != _maxBuildUp)
         {
             _buildUp = buildUp;
@@ -130,12 +123,11 @@ public sealed class AilmentViewModel : ViewModelBase
         UpdateVisibility();
 
         // Only exhaust is logged for now: its meaning is still being worked out, and logging every ailment drowns the output
-        if (changed && App.Options.Verbose && InvertsBuildUp)
+        if (changed && App.Options.Verbose && IsLogged)
             LogChange();
     }
 
-    // Debug output (--verbose, exhaust only): one line per 5% step of the gauge and on every timer or counter change,
-    // with the value the game reports and the one the ring shows
+    // Debug output (--verbose, exhaust entries only): one line per 5% step of the gauge and on every timer or counter change
     private void LogChange()
     {
         int step = (int)(BuildUpFraction * 20);
@@ -144,7 +136,7 @@ public sealed class AilmentViewModel : ViewModelBase
             return;
 
         _lastLoggedStep = step;
-        Console.WriteLine($"[{DateTime.Now:HH:mm:ss}][DEBUG] [Ailment] {Id}: game build-up {_rawBuildUp:0}/{_maxBuildUp:0}, ring {BuildUpFraction:P0}, timer {_timer:0.0}/{_maxTimer:0.0}, count {_count}");
+        Console.WriteLine($"[{DateTime.Now:HH:mm:ss}][DEBUG] [Ailment] {Id} (game id {Source?.Definition.Id}): build-up {_buildUp:0}/{_maxBuildUp:0} ({BuildUpFraction * 100:0}%), timer {_timer:0.0}/{_maxTimer:0.0}, count {_count}");
     }
 
     private void UpdateText(bool changed)

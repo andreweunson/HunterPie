@@ -111,8 +111,9 @@ Ailments: under the health bar each monster shows a ring per ailment, as in the 
 ailment's colour) is the time left while the effect is active, with the countdown below it; the inner blue arc is the
 build-up towards triggering it, with a percentage; the number in the middle is how often it has been inflicted. Enrage
 is the first ring. A ring appears when its values start changing and hides 15 s after the last change. Entries the game
-lists without a name are skipped. Exhaust is shown inverted: the game's build-up value for it is the monster's remaining stamina,
-so its ring fills as the stamina runs out. With `--verbose` exhaust changes are logged (`[Ailment] AILMENT_EXHAUST ...`), raw game value included. The Ailments checkbox in the settings window turns the row off. Names come from the
+lists without a name are skipped. The game's two "Exhaust" entries are still being worked out: one of them behaves like a flinch gauge (it fills as the monster is
+hit and resets, with a higher maximum, when it flinches). With `--verbose` their changes are logged
+(`[Ailment] AILMENT_EXHAUST (game id N) ...`). The Ailments checkbox in the settings window turns the row off. Names come from the
 language file (`Languages/en-us.xml`), colours match the Windows client.
 
 ### Damage meter
