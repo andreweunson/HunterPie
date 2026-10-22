@@ -82,6 +82,7 @@
                             <CheckBox Content="Monster icons" IsChecked="{Binding MonsterOptions.ShowIcons}" />
                             <CheckBox Content="Stamina bar" IsChecked="{Binding MonsterOptions.ShowStamina}" />
                             <CheckBox Content="Weaknesses" IsChecked="{Binding MonsterOptions.ShowWeaknesses}" />
+                            <CheckBox Content="Ailments" IsChecked="{Binding MonsterOptions.ShowAilments}" />
                         </StackPanel>
                     </StackPanel>
                 </Border>

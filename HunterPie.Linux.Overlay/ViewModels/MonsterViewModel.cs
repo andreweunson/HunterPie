@@ -1,5 +1,6 @@
 using Avalonia.Media;
 using Avalonia.Threading;
+using System.Collections.ObjectModel;
 using HunterPie.Core.Game.Entity.Enemy;
 using HunterPie.Core.Game.Enums;
 using HunterPie.Linux.Overlay.Services;
@@ -11,7 +12,7 @@ namespace HunterPie.Linux.Overlay.ViewModels;
 /// reacting to each one this is refreshed on the UI timer, which also caps redraws at the timer rate. Every value is
 /// compared with the previous one first: text is only formatted, and properties only raised, when something moved.
 /// </summary>
-public sealed class MonsterViewModel : ViewModelBase
+public sealed class MonsterViewModel : ViewModelBase, IDisposable
 {
     private static readonly IBrush NormalBrush = new SolidColorBrush(Color.Parse("#3A3E40"));
     private static readonly IBrush TemperedBrush = new SolidColorBrush(Color.Parse("#8C44D4"));
@@ -38,6 +39,8 @@ public sealed class MonsterViewModel : ViewModelBase
     private double _captureAt;
     private bool _isCapturable;
 
+    private bool _hasAilments;
+
     private Element[] _weaknesses = NoWeaknesses;
     private VariantType _variant = VariantType.Normal;
     private IBrush _variantBrush = NormalBrush;
@@ -46,6 +49,12 @@ public sealed class MonsterViewModel : ViewModelBase
     private readonly string? _iconId;
 
     public IMonster? Source { get; }
+
+    /// <summary>Enrage first, then the ailments the game reports for this monster</summary>
+    public ObservableCollection<AilmentViewModel> Ailments { get; } = new();
+
+    /// <summary>At least one ailment ring is on screen right now (the row is hidden otherwise)</summary>
+    public bool HasAilments { get => _hasAilments; private set => Set(ref _hasAilments, value); }
 
     public MonsterOptions Options { get; }
 
@@ -116,6 +125,15 @@ public sealed class MonsterViewModel : ViewModelBase
         Source = source;
         Options = options;
         _iconId = BuildIconId(source);
+
+        // Subscribe first, then take the snapshot: an ailment found in between is deduplicated in AddAilment
+        source.OnNewAilmentFound += OnNewAilmentFound;
+        if (source.Enrage is { } enrage)
+            AddAilment(enrage);
+
+        foreach (IMonsterAilment ailment in SnapshotAilments(source))
+            AddAilment(ailment);
+
         Refresh();
         EnsureIcon();
     }
@@ -137,6 +155,65 @@ public sealed class MonsterViewModel : ViewModelBase
         SetStamina(monster.Stamina, monster.MaxStamina);
         SetCapture(monster.CaptureThreshold);
         SetDetails(monster.Weaknesses, monster.Variant);
+        RefreshAilments();
+    }
+
+    /// <summary>Used by the demo feed, where there is no game to report ailments</summary>
+    public void AddAilment(AilmentViewModel ailment) => Ailments.Add(ailment);
+
+    public void RefreshAilments()
+    {
+        bool any = false;
+
+        // Index loop on purpose: no enumerator allocation on a 10 Hz path
+        for (int i = 0; i < Ailments.Count; i++)
+        {
+            AilmentViewModel ailment = Ailments[i];
+            ailment.Refresh();
+            any |= ailment.IsShown;
+        }
+
+        HasAilments = any;
+    }
+
+    public void Dispose()
+    {
+        if (Source is { } monster)
+            monster.OnNewAilmentFound -= OnNewAilmentFound;
+    }
+
+    // Raised from the game's scan thread
+    private void OnNewAilmentFound(object? sender, IMonsterAilment ailment) => Dispatcher.UIThread.Post(() => AddAilment(ailment));
+
+    private void AddAilment(IMonsterAilment ailment)
+    {
+        if (!AilmentViewModel.IsDisplayable(ailment))
+            return;
+
+        for (int i = 0; i < Ailments.Count; i++)
+        {
+            if (ReferenceEquals(Ailments[i].Source, ailment))
+                return;
+        }
+
+        Ailments.Add(new AilmentViewModel(ailment));
+    }
+
+    private static IMonsterAilment[] SnapshotAilments(IMonster monster)
+    {
+        // The game mutates its list from the scan thread
+        for (int attempt = 0; attempt < 3; attempt++)
+        {
+            try
+            {
+                return monster.Ailments is { } ailments ? [.. ailments] : [];
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        }
+
+        return [];
     }
 
     public void Set(string name, double health, double maxHealth, bool isEnraged)

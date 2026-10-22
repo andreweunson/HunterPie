@@ -106,6 +106,15 @@ public sealed class OverlayViewModel : ViewModelBase
         Sample.SetCapture(0.35);
         Sample.SetDetails([Element.Thunder, Element.Ice], VariantType.Normal);
 
+        // Static sample rings so the card has its real height while the layout is edited
+        var poison = new AilmentViewModel("AILMENT_POISON", "Poison");
+        poison.Update(14, 20, 0, 100, 1);
+        var paralysis = new AilmentViewModel("AILMENT_PARALYSIS", "Paralysis");
+        paralysis.Update(0, 0, 45, 100, 0);
+        Sample.AddAilment(poison);
+        Sample.AddAilment(paralysis);
+        Sample.RefreshAilments();
+
         // Turning portraits on while monsters are already in the list should fetch them
         MonsterOptions.PropertyChanged += (_, e) =>
         {
@@ -169,9 +178,16 @@ public sealed class OverlayViewModel : ViewModelBase
         }
 
         _context = null;
+        DisposeMonsters();
         Status = IsDemo ? "Demo mode (no game)" : "Waiting for Monster Hunter to start";
         Monsters.Clear();
         Quest.Refresh(null);
+    }
+
+    private void DisposeMonsters()
+    {
+        for (int i = 0; i < Monsters.Count; i++)
+            Monsters[i].Dispose();
     }
 
     private static IMonster[] Snapshot(Context context)
@@ -198,7 +214,10 @@ public sealed class OverlayViewModel : ViewModelBase
         MonsterViewModel? existing = Monsters.FirstOrDefault(it => ReferenceEquals(it.Source, monster));
 
         if (existing is { })
+        {
             Monsters.Remove(existing);
+            existing.Dispose();
+        }
     });
 
     private void Add(IMonster monster)

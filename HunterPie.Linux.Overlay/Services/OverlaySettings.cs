@@ -30,6 +30,7 @@ public sealed class MonsterPlacement : WidgetPlacement
     public bool ShowIcons { get; set; } = true;
     public bool ShowStamina { get; set; } = true;
     public bool ShowWeaknesses { get; set; } = true;
+    public bool ShowAilments { get; set; } = true;
 
     public MonsterPlacement()
     {

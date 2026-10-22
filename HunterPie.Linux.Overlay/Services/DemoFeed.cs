@@ -13,6 +13,10 @@ internal sealed class DemoFeed : IDisposable
     private readonly OverlayViewModel _viewModel;
     private readonly MonsterViewModel _first;
     private readonly MonsterViewModel _second;
+    private readonly AilmentViewModel _enrage = new("STATUS_ENRAGE", "Enrage");
+    private readonly AilmentViewModel _poison = new("AILMENT_POISON", "Poison");
+    private readonly AilmentViewModel _paralysis = new("AILMENT_PARALYSIS", "Paralysis");
+    private readonly AilmentViewModel _sleep = new("AILMENT_SLEEP", "Sleep");
     private readonly DispatcherTimer _timer;
     private readonly DateTime _start = DateTime.UtcNow;
     private long _lastDamage;
@@ -30,6 +34,11 @@ internal sealed class DemoFeed : IDisposable
         _second = new MonsterViewModel("Rathian", 9200, 9200, false, viewModel.MonsterOptions, "Wilds_0");
         _second.SetCapture(0.2);
         _second.SetDetails([Element.Dragon, Element.Thunder, Element.Water], VariantType.Tempered);
+
+        _first.AddAilment(_enrage);
+        _first.AddAilment(_poison);
+        _first.AddAilment(_paralysis);
+        _second.AddAilment(_sleep);
 
         _first.EnsureIcon();
         _second.EnsureIcon();
@@ -49,6 +58,18 @@ internal sealed class DemoFeed : IDisposable
         double cycle = seconds % 60 / 60;
         _first.Set("Quematrice", 5760 * (1 - cycle), 5760, cycle is > 0.3 and < 0.5);
         _second.Set("Rathian", 9200 * (1 - cycle * 0.7), 9200, false);
+
+        // Enrage lasts 12s of each cycle, poison 20s of every 30s, paralysis and sleep build up and reset
+        double enrageLeft = Math.Max(0, (0.5 - cycle) * 60);
+        _enrage.Update(cycle is > 0.3 and < 0.5 ? (float)enrageLeft : 0, 12, 0, 0, seconds > 18 ? 1 : 0);
+
+        double poisonPhase = seconds % 30;
+        _poison.Update(poisonPhase < 20 ? (float)(20 - poisonPhase) : 0, 20, poisonPhase < 20 ? 0 : (float)((poisonPhase - 20) * 10), 100, 1 + (int)(seconds / 30));
+        _paralysis.Update(0, 0, (float)(seconds % 24 / 24 * 100), 100, 0);
+        _sleep.Update(0, 0, (float)(seconds % 40 / 40 * 100), 100, 2);
+
+        _first.RefreshAilments();
+        _second.RefreshAilments();
 
         // Stamina drains and refills so the bar can be seen moving
         _first.SetStamina(1000 * (1 - seconds % 20 / 20), 1000);

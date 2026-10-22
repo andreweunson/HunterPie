@@ -72,6 +72,34 @@
                         </ItemsControl>
                     </StackPanel>
                 </DockPanel>
+
+                <!-- Rings for ailments that are active or building up; the row is gone when there are none -->
+                <StackPanel IsVisible="{Binding Options.ShowAilments}">
+                    <ItemsControl ItemsSource="{Binding Ailments}" IsVisible="{Binding HasAilments}" Margin="0,4,0,0">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:AilmentViewModel">
+                                <StackPanel Width="58" Margin="0,0,4,4" IsVisible="{Binding IsShown}">
+                                    <Grid Width="40" Height="40">
+                                        <views:AilmentRing TimerFraction="{Binding TimerFraction}"
+                                                           BuildUpFraction="{Binding BuildUpFraction}"
+                                                           TimerBrush="{Binding Brush}" />
+                                        <TextBlock Classes="muted" Text="{Binding Count}" FontSize="12"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="Medium"
+                                               TextAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Classes="muted" Text="{Binding Text}" FontFamily="monospace" FontSize="11"
+                                               TextAlignment="Center" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
             </StackPanel>
         </Grid>
     </Border>

@@ -46,7 +46,7 @@ Requirements: a compositing window manager (otherwise the transparent window is 
 **borderless windowed** mode; overlays cannot draw over exclusive fullscreen. Works on X11 and XWayland. The first
 build prints a blocked-connection warning for Avalonia build telemetry; set `AVALONIA_TELEMETRY_OPTOUT=1` to silence it.
 
-Widgets today: monster health (name, bar, numbers, enrage badge; one card per monster) and quest timer.
+Widgets today: monster health (name, bar, numbers, enrage badge, stamina, weaknesses, ailments; one card per monster), quest timer and damage meter.
 
 ## How it works
 - `HunterPie.Platforms/Linux/` implements the platform interfaces: process discovery (`/proc/*/cmdline` + the PE image
@@ -64,7 +64,7 @@ Widgets today: monster health (name, bar, numbers, enrage badge; one card per mo
 | Headless host | Done; attach, scan loop, shutdown and `--doctor` exercised against a fake game process |
 | Real-game test | Wilds 1.42.0.2 on Proton: attach, login, stage, quest, monster HP and enrage verified. World and Rise not yet tried |
 | Overlay (`HunterPie.Linux.Overlay`) | Monster health, quest timer and damage meter (per-player damage, share of team damage, DPS counted from when each member was first seen). Monster (health, capture marker, stamina, weaknesses, portrait) and quest widgets: the first version was confirmed over the real game on KDE, the additions are verified on a virtual X server and against fake monsters; the damage meter (with weapon icons, stats and DPS graph) is verified on a virtual X server and against a fake party only |
-| Remaining WPF widgets (player vitals, abnormalities, damage meter, parts, ailments, settings UI) | Not ported: `HunterPie.UI` is 424 C# / 116 XAML files |
+| Remaining WPF widgets (player vitals, abnormalities, parts, crown and monster type) | Not ported: `HunterPie.UI` is 424 C# / 116 XAML files |
 | Native module (DLL injection), Discord RPC, updater | Windows only for now |
 
 ## Known limits of the headless host
@@ -106,6 +106,13 @@ and keeps it in `$XDG_CACHE_HOME/HunterPie/monster-icons` (default `~/.cache/Hun
 accepted if it is a PNG under 512 KB that decodes; a missing portrait just leaves the empty tilted square. Turning the
 Icons checkbox off stops the downloads. `HUNTERPIE_ICON_CDN` points the overlay at a different server (a mirror, or a
 local one for testing).
+
+Ailments: under the health bar each monster shows a ring per ailment, as in the Windows client. The outer arc (in the
+ailment's colour) is the time left while the effect is active, with the countdown below it; the inner blue arc is the
+build-up towards triggering it, with a percentage; the number in the middle is how often it has been inflicted. Enrage
+is the first ring. A ring appears when its values start changing and hides 15 s after the last change. Entries the game
+lists without a name are skipped. The Ailments checkbox in the settings window turns the row off. Names come from the
+language file (`Languages/en-us.xml`), colours match the Windows client.
 
 ### Damage meter
 
