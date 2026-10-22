@@ -4,8 +4,20 @@
         x:Class="HunterPie.Linux.Overlay.Views.SettingsWindow"
         x:DataType="vm:OverlayViewModel"
         Title="HunterPie"
-        Width="460" Height="560" MinWidth="380" MinHeight="460"
+        Width="500" Height="700" MinWidth="420" MinHeight="460"
         WindowStartupLocation="CenterScreen">
+
+    <Window.Styles>
+        <Style Selector="Border.section">
+            <Setter Property="Padding" Value="12" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="#14808080" />
+        </Style>
+        <Style Selector="TextBlock.heading">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+    </Window.Styles>
 
     <Grid RowDefinitions="Auto,*,Auto" Margin="20">
         <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,12">
@@ -14,28 +26,83 @@
         </StackPanel>
 
         <ScrollViewer Grid.Row="1">
-            <StackPanel Spacing="18">
-                <StackPanel Spacing="8">
-                    <TextBlock Text="Overlay" FontWeight="SemiBold" />
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Name="EditButton" Content="Edit widget layout" Click="OnEditClick" />
+            <StackPanel Spacing="12" Margin="0,0,14,0">
+                <Border Classes="section">
+                    <StackPanel Spacing="10">
+                        <TextBlock Classes="heading" Text="Overlay" Margin="0" />
+
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Name="EditButton" Content="Edit widget layout" Click="OnEditClick" />
+                            <Button Content="Reset positions" Click="OnResetClick" />
+                        </StackPanel>
+                        <TextBlock Opacity="0.6" TextWrapping="Wrap"
+                                   Text="Drag widgets to move them and scroll over one to resize it. Saved when you leave edit mode." />
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Show the overlay on" Opacity="0.7" />
+                            <ComboBox Name="MonitorBox" HorizontalAlignment="Stretch" SelectionChanged="OnMonitorChanged" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="2">
+                            <CheckBox Content="Keep above fullscreen games" IsChecked="{Binding Layout.OverrideRedirect}" />
+                            <TextBlock Opacity="0.6" TextWrapping="Wrap" Margin="26,0,0,0"
+                                       Text="Experimental. Bypasses the window manager (needed on KDE/Wayland). Such a window cannot take keyboard focus, so use the on-screen buttons in edit mode." />
+                        </StackPanel>
                     </StackPanel>
-                    <TextBlock Opacity="0.6" TextWrapping="Wrap"
-                               Text="Drag widgets to move them and scroll over one to resize it. Saved when you leave edit mode." />
-                </StackPanel>
+                </Border>
 
-                <StackPanel Spacing="6">
-                    <TextBlock Text="Monsters" FontWeight="SemiBold" />
-                    <CheckBox Content="Monster icons" IsChecked="{Binding MonsterOptions.ShowIcons}" />
-                    <CheckBox Content="Stamina bar" IsChecked="{Binding MonsterOptions.ShowStamina}" />
-                    <CheckBox Content="Weaknesses" IsChecked="{Binding MonsterOptions.ShowWeaknesses}" />
-                </StackPanel>
+                <TextBlock Classes="heading" Text="Widgets" Margin="2,6,0,0" />
 
-                <StackPanel Spacing="6">
-                    <TextBlock Text="Damage meter" FontWeight="SemiBold" />
-                    <CheckBox Content="DPS graph" IsChecked="{Binding Damage.ShowGraph}" />
-                    <CheckBox Content="Player stats" IsChecked="{Binding Damage.ShowStats}" />
-                </StackPanel>
+                <Border Classes="section">
+                    <StackPanel Spacing="6">
+                        <CheckBox Content="Quest timer" FontWeight="SemiBold" IsChecked="{Binding Layout.QuestEnabled}" />
+                        <Grid ColumnDefinitions="70,*,50" RowDefinitions="Auto,Auto" IsEnabled="{Binding Layout.QuestEnabled}">
+                            <TextBlock Grid.Row="0" Text="Size" VerticalAlignment="Center" Opacity="0.7" />
+                            <Slider Grid.Row="0" Grid.Column="1" Minimum="0.4" Maximum="3" Value="{Binding Layout.QuestScale}" />
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Layout.QuestScale, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="1" Text="Opacity" VerticalAlignment="Center" Opacity="0.7" />
+                            <Slider Grid.Row="1" Grid.Column="1" Minimum="0.1" Maximum="1" Value="{Binding Layout.QuestOpacity}" />
+                            <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Layout.QuestOpacity, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="section">
+                    <StackPanel Spacing="6">
+                        <CheckBox Content="Monsters" FontWeight="SemiBold" IsChecked="{Binding Layout.MonstersEnabled}" />
+                        <Grid ColumnDefinitions="70,*,50" RowDefinitions="Auto,Auto" IsEnabled="{Binding Layout.MonstersEnabled}">
+                            <TextBlock Grid.Row="0" Text="Size" VerticalAlignment="Center" Opacity="0.7" />
+                            <Slider Grid.Row="0" Grid.Column="1" Minimum="0.4" Maximum="3" Value="{Binding Layout.MonstersScale}" />
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Layout.MonstersScale, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="1" Text="Opacity" VerticalAlignment="Center" Opacity="0.7" />
+                            <Slider Grid.Row="1" Grid.Column="1" Minimum="0.1" Maximum="1" Value="{Binding Layout.MonstersOpacity}" />
+                            <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Layout.MonstersOpacity, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        </Grid>
+                        <StackPanel Margin="20,4,0,0" Spacing="4" IsEnabled="{Binding Layout.MonstersEnabled}">
+                            <CheckBox Content="Monster icons" IsChecked="{Binding MonsterOptions.ShowIcons}" />
+                            <CheckBox Content="Stamina bar" IsChecked="{Binding MonsterOptions.ShowStamina}" />
+                            <CheckBox Content="Weaknesses" IsChecked="{Binding MonsterOptions.ShowWeaknesses}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="section">
+                    <StackPanel Spacing="6">
+                        <CheckBox Content="Damage meter" FontWeight="SemiBold" IsChecked="{Binding Layout.DamageEnabled}" />
+                        <Grid ColumnDefinitions="70,*,50" RowDefinitions="Auto,Auto" IsEnabled="{Binding Layout.DamageEnabled}">
+                            <TextBlock Grid.Row="0" Text="Size" VerticalAlignment="Center" Opacity="0.7" />
+                            <Slider Grid.Row="0" Grid.Column="1" Minimum="0.4" Maximum="3" Value="{Binding Layout.DamageScale}" />
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Layout.DamageScale, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="1" Text="Opacity" VerticalAlignment="Center" Opacity="0.7" />
+                            <Slider Grid.Row="1" Grid.Column="1" Minimum="0.1" Maximum="1" Value="{Binding Layout.DamageOpacity}" />
+                            <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Layout.DamageOpacity, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        </Grid>
+                        <StackPanel Margin="20,4,0,0" Spacing="4" IsEnabled="{Binding Layout.DamageEnabled}">
+                            <CheckBox Content="DPS graph" IsChecked="{Binding Damage.ShowGraph}" />
+                            <CheckBox Content="Player stats" IsChecked="{Binding Damage.ShowStats}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
 

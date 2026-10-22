@@ -38,7 +38,11 @@ public partial class App : Application
             if (Options.Screen is { } screen)
                 _settings.Screen = screen;
 
-            _viewModel = new OverlayViewModel { IsEditing = Options.Edit };
+            // The command line flag wins and is remembered; it can be switched off in the settings window
+            if (Options.OverrideRedirect)
+                _settings.OverrideRedirect = true;
+
+            _viewModel = new OverlayViewModel(_settings) { IsEditing = Options.Edit };
             SettingsBinder.Bind(_settings, _viewModel);
 
             // The settings window is the app; the overlay is a second, click-through window that follows it
@@ -107,6 +111,7 @@ public partial class App : Application
         InstanceControl.Unregister();
         _demo?.Dispose();
         _viewModel?.Stop();
+        _viewModel?.Layout.Flush();
         _editSignal?.Dispose();
         _session?.Dispose();
     }

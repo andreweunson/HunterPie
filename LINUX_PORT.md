@@ -33,8 +33,9 @@ cd HunterPie.Linux.Overlay/bin/Release/net10.0
 ./HunterPie.Linux.Overlay --toggle-edit     # toggle edit mode from another terminal (same as kill -USR1 <pid>) (saves ~/.config/HunterPie/overlay.json)
 ./HunterPie.Linux.Overlay                   # attach to the game and show monster health + quest timer
 ```
-Starting it opens the **HunterPie settings window** (the app's main window: game status, an "Edit widget layout" button,
-and the widget options). Closing that window quits HunterPie and the overlay. Option changes apply to the overlay
+Starting it opens the **HunterPie settings window** (the app's main window): game status, "Edit widget layout" and
+"Reset positions", the monitor the overlay covers, "Keep above fullscreen games" (override-redirect, see below), and
+for each widget (quest timer, monsters, damage meter) a visibility checkbox, size and opacity sliders and its options. Closing that window quits HunterPie and the overlay. Option changes apply to the overlay
 immediately and are saved to `overlay.json`.
 
 The overlay itself is a transparent, always-on-top window covering one monitor (`--screen <n>`). Outside edit mode its input region is
@@ -77,6 +78,9 @@ parts and ailments), then a settings UI. Click-through is solved with XShape; tr
 toggle is the stand-in). On native Wayland a layer-shell surface and the GlobalShortcuts portal would replace both.
 
 ### Overlay stacking on Wayland
+The settings window's "Keep above fullscreen games" checkbox is the same as `--override-redirect` (the flag turns it on and
+it is remembered); it applies and reverts live.
+
 
 Avalonia has no native Wayland backend, so the overlay is an XWayland window and `Topmost` only asks the compositor for
 "keep above". Compositors may still put a focused fullscreen game above it. `--override-redirect` is an experiment:

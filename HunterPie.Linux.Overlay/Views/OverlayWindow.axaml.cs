@@ -55,15 +55,35 @@ public partial class OverlayWindow : Window
     {
         CoverScreen();
 
-        if (App.Options.OverrideRedirect)
-        {
-            if (TryGetPlatformHandle() is { HandleDescriptor: "XID" } handle && X11OverrideRedirect.TryEnable(handle.Handle))
-                Console.WriteLine("Override-redirect enabled: the overlay is unmanaged and has no keyboard focus.");
-            else
-                Console.Error.WriteLine("--override-redirect could not be applied (not an X11/XWayland window?)");
-        }
+        if (_settings.OverrideRedirect)
+            ApplyOverrideRedirect();
 
         ApplyLayout();
+    }
+
+    private void ApplyOverrideRedirect()
+    {
+        if (TryGetPlatformHandle() is { HandleDescriptor: "XID" } handle && X11OverrideRedirect.TrySet(handle.Handle, _settings.OverrideRedirect))
+            Trace($"Override-redirect {(_settings.OverrideRedirect ? "enabled: the overlay is unmanaged and has no keyboard focus" : "disabled")}");
+        else
+            Console.Error.WriteLine("Override-redirect could not be applied (not an X11/XWayland window?)");
+    }
+
+    private void OnLayoutChanged(string change)
+    {
+        switch (change)
+        {
+            case nameof(LayoutViewModel.Screen):
+                CoverScreen();
+                break;
+            case nameof(LayoutViewModel.OverrideRedirect):
+                ApplyOverrideRedirect();
+                ApplyLayout();
+                break;
+            default:
+                ApplyLayout();
+                break;
+        }
     }
 
     /// <summary>Saves the layout and returns to click-through mode</summary>
@@ -112,6 +132,8 @@ public partial class OverlayWindow : Window
             if (e.PropertyName == nameof(OverlayViewModel.IsEditing))
                 UpdateClickThrough();
         };
+
+        viewModel.Layout.LayoutChanged += (_, change) => OnLayoutChanged(change);
 
         MakeDraggable(QuestHost, _settings.Quest);
         MakeDraggable(MonstersHost, _settings.Monsters);
@@ -226,6 +248,7 @@ public partial class OverlayWindow : Window
             placement.Scale = Math.Clamp(Math.Round(placement.Scale + Math.Sign(e.Delta.Y) * 0.05, 2), 0.4, 3.0);
             Apply(host, placement);
             SaveSettings();
+            ViewModel.Layout.Refresh();
             e.Handled = true;
         };
     }

@@ -2,6 +2,7 @@ using Avalonia.Threading;
 using HunterPie.Core.Game;
 using HunterPie.Core.Game.Entity.Enemy;
 using HunterPie.Core.Game.Enums;
+using HunterPie.Linux.Overlay.Services;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 
@@ -21,6 +22,8 @@ public sealed class OverlayViewModel : ViewModelBase
 
     // Damage only changes a few times a second, so it is refreshed at a quarter of the 100 ms timer rate
     private static readonly TimeSpan DamageRefreshInterval = TimeSpan.FromMilliseconds(250);
+
+    public LayoutViewModel Layout { get; }
 
     public MonsterOptions MonsterOptions { get; } = new();
 
@@ -73,14 +76,31 @@ public sealed class OverlayViewModel : ViewModelBase
 
     public bool ShowSample => IsEditing && Monsters.Count == 0;
 
-    public bool ShowMonsters => IsEditing || Monsters.Count > 0;
+    public bool ShowMonsters => IsEditing || (Layout.MonstersEnabled && Monsters.Count > 0);
 
-    public bool ShowQuest => IsEditing || Quest.IsActive;
+    public bool ShowQuest => IsEditing || (Layout.QuestEnabled && Quest.IsActive);
 
-    public bool ShowDamage => IsEditing || (Damage.IsActive && Damage.HasRows);
+    public bool ShowDamage => IsEditing || (Layout.DamageEnabled && Damage.IsActive && Damage.HasRows);
 
-    public OverlayViewModel()
+    public OverlayViewModel(OverlaySettings? settings = null)
     {
+        Layout = new LayoutViewModel(settings ?? new OverlaySettings());
+        Layout.PropertyChanged += (_, e) =>
+        {
+            switch (e.PropertyName)
+            {
+                case nameof(LayoutViewModel.MonstersEnabled):
+                    Raise(nameof(ShowMonsters));
+                    break;
+                case nameof(LayoutViewModel.QuestEnabled):
+                    Raise(nameof(ShowQuest));
+                    break;
+                case nameof(LayoutViewModel.DamageEnabled):
+                    Raise(nameof(ShowDamage));
+                    break;
+            }
+        };
+
         Sample = new MonsterViewModel("Monster (sample)", 6500, 10000, true, MonsterOptions);
         Sample.SetStamina(620, 1000);
         Sample.SetCapture(0.35);

@@ -10,6 +10,9 @@ public class WidgetPlacement
     public double Scale { get; set; } = 1.0;
     public double Opacity { get; set; } = 1.0;
 
+    /// <summary>Widgets that are switched off are hidden, even in edit mode they stay visible so they can be placed</summary>
+    public bool Enabled { get; set; } = true;
+
     public WidgetPlacement()
     {
     }
@@ -73,6 +76,9 @@ public sealed class OverlaySettings
     /// <summary>Index of the monitor the game is on (0 = primary)</summary>
     public int Screen { get; set; }
 
+    /// <summary>Bypass the window manager so the overlay stays above fullscreen games (no keyboard focus)</summary>
+    public bool OverrideRedirect { get; set; }
+
     [JsonIgnore]
     public static string FilePath
     {
@@ -117,7 +123,7 @@ public sealed class OverlaySettings
     // A hand-edited file can hold nonsense; keep widgets on screen and visible
     private static OverlaySettings Sanitize(OverlaySettings settings)
     {
-        foreach (WidgetPlacement placement in new[] { settings.Quest, settings.Monsters })
+        foreach (WidgetPlacement placement in new WidgetPlacement[] { settings.Quest, settings.Monsters, settings.Damage })
         {
             placement.X = double.IsFinite(placement.X) ? Math.Max(0, placement.X) : 0;
             placement.Y = double.IsFinite(placement.Y) ? Math.Max(0, placement.Y) : 0;

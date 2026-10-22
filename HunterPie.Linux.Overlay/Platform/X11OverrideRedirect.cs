@@ -34,7 +34,9 @@ internal static class X11OverrideRedirect
     [DllImport("libX11.so.6")]
     private static extern int XChangeWindowAttributes(IntPtr display, IntPtr window, long valueMask, IntPtr attributes);
 
-    public static bool TryEnable(IntPtr window)
+    public static bool TryEnable(IntPtr window) => TrySet(window, true);
+
+    public static bool TrySet(IntPtr window, bool enabled)
     {
         if (!OperatingSystem.IsLinux() || window == IntPtr.Zero || IntPtr.Size != 8)
             return false;
@@ -53,7 +55,7 @@ internal static class X11OverrideRedirect
             for (int i = 0; i < AttributesSize; i++)
                 Marshal.WriteByte(attributes, i, 0);
 
-            Marshal.WriteInt32(attributes, OverrideRedirectOffset, 1);
+            Marshal.WriteInt32(attributes, OverrideRedirectOffset, enabled ? 1 : 0);
 
             // The attribute can only be changed while the window is unmapped
             _ = XUnmapWindow(display, window);
