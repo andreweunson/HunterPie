@@ -15,6 +15,7 @@ public sealed class OverlayViewModel : ViewModelBase
 {
     private Context? _context;
     private bool _isEditing;
+    private string _status = "Waiting for Monster Hunter to start";
     private readonly DispatcherTimer _timer;
     private long _lastDamageRefresh;
 
@@ -36,7 +37,12 @@ public sealed class OverlayViewModel : ViewModelBase
     public bool IsDemo
     {
         get => Damage.IsDemo;
-        set => Damage.IsDemo = value;
+        set
+        {
+            Damage.IsDemo = value;
+            if (value)
+                Status = "Demo mode (no game)";
+        }
     }
 
     /// <summary>
@@ -56,6 +62,13 @@ public sealed class OverlayViewModel : ViewModelBase
             Raise(nameof(ShowDamage));
             Damage.IsEditing = value;
         }
+    }
+
+    /// <summary>Shown in the settings window</summary>
+    public string Status
+    {
+        get => _status;
+        private set => Set(ref _status, value);
     }
 
     public bool ShowSample => IsEditing && Monsters.Count == 0;
@@ -117,6 +130,7 @@ public sealed class OverlayViewModel : ViewModelBase
     {
         DetachOnUiThread();
         _context = context;
+        Status = $"Attached to {context.Process.Name}";
 
         // Subscribe first, then take the snapshot: a monster that spawns in between is deduplicated in Add
         context.Game.OnMonsterSpawn += OnMonsterSpawn;
@@ -135,6 +149,7 @@ public sealed class OverlayViewModel : ViewModelBase
         }
 
         _context = null;
+        Status = IsDemo ? "Demo mode (no game)" : "Waiting for Monster Hunter to start";
         Monsters.Clear();
         Quest.Refresh(null);
     }

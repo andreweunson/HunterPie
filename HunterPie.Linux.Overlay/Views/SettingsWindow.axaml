@@ -1,0 +1,44 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:HunterPie.Linux.Overlay.ViewModels"
+        x:Class="HunterPie.Linux.Overlay.Views.SettingsWindow"
+        x:DataType="vm:OverlayViewModel"
+        Title="HunterPie"
+        Width="460" Height="560" MinWidth="380" MinHeight="460"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="20">
+        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,12">
+            <TextBlock Text="HunterPie" FontSize="22" FontWeight="Bold" />
+            <TextBlock Text="{Binding Status}" Opacity="0.7" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Spacing="18">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Overlay" FontWeight="SemiBold" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Name="EditButton" Content="Edit widget layout" Click="OnEditClick" />
+                    </StackPanel>
+                    <TextBlock Opacity="0.6" TextWrapping="Wrap"
+                               Text="Drag widgets to move them and scroll over one to resize it. Saved when you leave edit mode." />
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Monsters" FontWeight="SemiBold" />
+                    <CheckBox Content="Monster icons" IsChecked="{Binding MonsterOptions.ShowIcons}" />
+                    <CheckBox Content="Stamina bar" IsChecked="{Binding MonsterOptions.ShowStamina}" />
+                    <CheckBox Content="Weaknesses" IsChecked="{Binding MonsterOptions.ShowWeaknesses}" />
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Damage meter" FontWeight="SemiBold" />
+                    <CheckBox Content="DPS graph" IsChecked="{Binding Damage.ShowGraph}" />
+                    <CheckBox Content="Player stats" IsChecked="{Binding Damage.ShowStats}" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Button Grid.Row="2" Content="Quit HunterPie" HorizontalAlignment="Right" Margin="0,12,0,0" Click="OnQuitClick" />
+    </Grid>
+</Window>

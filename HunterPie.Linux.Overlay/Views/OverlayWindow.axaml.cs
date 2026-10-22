@@ -86,8 +86,11 @@ public partial class OverlayWindow : Window
     private void OnQuitClick(object? sender, RoutedEventArgs e)
     {
         Trace("Quit button clicked");
-        Close();
+        QuitApplication();
     }
+
+    private static void QuitApplication() =>
+        (Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.Shutdown();
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
@@ -96,7 +99,7 @@ public partial class OverlayWindow : Window
         if (e.Key == Key.Escape)
             LeaveEditing();
         else if (e.Key == Key.Q && e.KeyModifiers.HasFlag(KeyModifiers.Control))
-            Close();
+            QuitApplication();
     }
 
     private void WireEditing()
@@ -108,31 +111,6 @@ public partial class OverlayWindow : Window
         {
             if (e.PropertyName == nameof(OverlayViewModel.IsEditing))
                 UpdateClickThrough();
-        };
-
-        viewModel.MonsterOptions.ShowIcons = _settings.Monsters.ShowIcons;
-        viewModel.MonsterOptions.ShowStamina = _settings.Monsters.ShowStamina;
-        viewModel.MonsterOptions.ShowWeaknesses = _settings.Monsters.ShowWeaknesses;
-        viewModel.MonsterOptions.PropertyChanged += (_, _) =>
-        {
-            _settings.Monsters.ShowIcons = viewModel.MonsterOptions.ShowIcons;
-            _settings.Monsters.ShowStamina = viewModel.MonsterOptions.ShowStamina;
-            _settings.Monsters.ShowWeaknesses = viewModel.MonsterOptions.ShowWeaknesses;
-            Trace($"Monster widget options: icons={_settings.Monsters.ShowIcons}, stamina={_settings.Monsters.ShowStamina}, weaknesses={_settings.Monsters.ShowWeaknesses}");
-            SaveSettings();
-        };
-
-        viewModel.Damage.ShowGraph = _settings.Damage.ShowGraph;
-        viewModel.Damage.ShowStats = _settings.Damage.ShowStats;
-        viewModel.Damage.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName is not (nameof(DamageViewModel.ShowGraph) or nameof(DamageViewModel.ShowStats)))
-                return;
-
-            _settings.Damage.ShowGraph = viewModel.Damage.ShowGraph;
-            _settings.Damage.ShowStats = viewModel.Damage.ShowStats;
-            Trace($"Damage widget options: graph={_settings.Damage.ShowGraph}, stats={_settings.Damage.ShowStats}");
-            SaveSettings();
         };
 
         MakeDraggable(QuestHost, _settings.Quest);

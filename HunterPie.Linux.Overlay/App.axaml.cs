@@ -18,6 +18,7 @@ public partial class App : Application
     private const int SigUsr1 = 10;
 
     private OverlayWindow? _window;
+    private SettingsWindow? _settingsWindow;
     private OverlayViewModel? _viewModel;
     private OverlaySettings? _settings;
     private PosixSignalRegistration? _editSignal;
@@ -38,8 +39,16 @@ public partial class App : Application
                 _settings.Screen = screen;
 
             _viewModel = new OverlayViewModel { IsEditing = Options.Edit };
+            SettingsBinder.Bind(_settings, _viewModel);
+
+            // The settings window is the app; the overlay is a second, click-through window that follows it
             _window = new OverlayWindow(_settings) { DataContext = _viewModel };
-            desktop.MainWindow = _window;
+            _settingsWindow = new SettingsWindow { DataContext = _viewModel };
+            _settingsWindow.EditLayoutRequested += (_, _) => ToggleEditing();
+
+            desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnMainWindowClose;
+            desktop.MainWindow = _settingsWindow;
+            _window.Show();
             desktop.ShutdownRequested += (_, _) => Shutdown();
 
             _viewModel.Start();

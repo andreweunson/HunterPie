@@ -33,8 +33,12 @@ cd HunterPie.Linux.Overlay/bin/Release/net10.0
 ./HunterPie.Linux.Overlay --toggle-edit     # toggle edit mode from another terminal (same as kill -USR1 <pid>) (saves ~/.config/HunterPie/overlay.json)
 ./HunterPie.Linux.Overlay                   # attach to the game and show monster health + quest timer
 ```
-It is a transparent, always-on-top window covering one monitor (`--screen <n>`). Outside edit mode its input region is
-empty (XShape), so mouse and keyboard go to the game. In edit mode drag a widget to move it and scroll over it to resize. In edit mode an on-screen panel has "Save & exit edit mode" and "Quit overlay" buttons; Esc leaves edit mode and Ctrl+Q quits.
+Starting it opens the **HunterPie settings window** (the app's main window: game status, an "Edit widget layout" button,
+and the widget options). Closing that window quits HunterPie and the overlay. Option changes apply to the overlay
+immediately and are saved to `overlay.json`.
+
+The overlay itself is a transparent, always-on-top window covering one monitor (`--screen <n>`). Outside edit mode its input region is
+empty (XShape), so mouse and keyboard go to the game. In edit mode drag a widget to move it and scroll over it to resize. In edit mode an on-screen panel has "Save & exit edit mode" and "Quit HunterPie" buttons; Esc leaves edit mode and Ctrl+Q quits.
 Bind `kill -USR1 $(pidof HunterPie.Linux.Overlay)` to a key in your desktop environment to get a "toggle layout" hotkey.
 
 Requirements: a compositing window manager (otherwise the transparent window is drawn black) and the game in
@@ -89,7 +93,7 @@ captured (dim above the threshold, bright with a CAPTURE badge once it is at or 
 numbers and the elements it is weak to (the vector art from `HunterPie.UI/Resources/Abnormalities.xaml`, copied into
 `Assets/ElementIcons.axaml`). Stamina and weaknesses only appear when the game reports them.
 
-In layout edit mode the Icons, Stamina and Weaknesses checkboxes switch those parts off; the choice is saved in
+The Monsters section of the settings window has Icons, Stamina and Weaknesses checkboxes; the choice is saved in
 `overlay.json`.
 
 **Portraits are downloaded.** HunterPie's monster icons are not in the source tree: like the Windows client, the
@@ -110,7 +114,7 @@ Under the rows is a DPS graph with one line per member (yours is thicker). It pl
 show, sampled once per second of quest time. The history has a fixed size: when it fills up every second sample is
 dropped and the sampling interval doubles, so a whole quest always fits and drawing it never gets more expensive.
 
-In layout edit mode two checkboxes turn the graph and the stats line on or off; the choice is saved in
+The Damage meter section of the settings window turns the graph and the stats line on or off; the choice is saved in
 `overlay.json` next to the widget positions.
 
 The final numbers stay on screen after a quest ends and clear when you leave the hunting zone or a new quest
