@@ -4,7 +4,8 @@ internal sealed record HostOptions(
     bool ShowHelp,
     bool Doctor,
     bool Verbose,
-    TimeSpan? RunFor
+    TimeSpan? RunFor,
+    bool WriteLogs = true
 )
 {
     public const string Usage = """
@@ -15,6 +16,8 @@ internal sealed record HostOptions(
           --doctor        Check the environment (ptrace, xdotool, address maps) and look for a running game, then exit
           --verbose       Also print debug logs from HunterPie
           --run-for <s>   Exit by itself after <s> seconds (useful for scripts and tests)
+          --no-logs       Do not write log files (default: a session log, and one file per hunt with a summary,
+                          in ~/.local/state/HunterPie/logs or $HUNTERPIE_LOG_DIR)
           -h, --help      Show this help
 
         Start the game (through Steam/Proton), then run this. Without --doctor it attaches and prints
@@ -23,7 +26,7 @@ internal sealed record HostOptions(
 
     public static HostOptions Parse(string[] args)
     {
-        bool help = false, doctor = false, verbose = false;
+        bool help = false, doctor = false, verbose = false, noLogs = false;
         TimeSpan? runFor = null;
 
         for (int i = 0; i < args.Length; i++)
@@ -39,6 +42,9 @@ internal sealed record HostOptions(
                 case "--verbose":
                     verbose = true;
                     break;
+                case "--no-logs":
+                    noLogs = true;
+                    break;
                 case "--run-for":
                     if (i + 1 >= args.Length || !double.TryParse(args[++i], System.Globalization.CultureInfo.InvariantCulture, out double seconds) || seconds <= 0)
                         throw new ArgumentException("--run-for expects a positive number of seconds");
@@ -50,6 +56,6 @@ internal sealed record HostOptions(
             }
         }
 
-        return new HostOptions(help, doctor, verbose, runFor);
+        return new HostOptions(help, doctor, verbose, runFor, !noLogs);
     }
 }

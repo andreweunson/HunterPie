@@ -1,9 +1,6 @@
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
-using HunterPie.Core.Client.Localization;
-using HunterPie.DI;
-using System.Collections.Concurrent;
-using System.Globalization;
+using HunterPie.Linux.Services;
 
 namespace HunterPie.Linux.Overlay.Services;
 
@@ -36,42 +33,13 @@ internal static class AilmentStyle
         ["AILMENT_ELDERSEAL"] = Brush("#9B5BD0"),
     };
 
-    private static readonly ConcurrentDictionary<string, string> Names = new();
-
     public static IBrush FlinchBrush { get; } = Brush("#E3A857");
 
     public static IBrush BrushFor(string id) => Brushes.GetValueOrDefault(id, Unknown);
 
-    /// <summary>Localised name from the language file, or a readable version of the id when there is none</summary>
-    public static string NameFor(string id)
-    {
-        if (Names.TryGetValue(id, out string? cached))
-            return cached;
+    public static string NameFor(string id) => AilmentNames.NameFor(id);
 
-        try
-        {
-            // The Windows client reads every game's ailments from the Rise section of the language file
-            var repository = DependencyContainer.Get<ILocalizationRepository>();
-            string path = $"//Strings/Ailments/Rise/Ailment[@Id='{id}']";
-            string name = repository.ExistsBy(path) ? repository.FindStringBy(path) : Prettify(id);
-
-            return Names.GetOrAdd(id, name);
-        }
-        catch (Exception ex) when (ex is NullReferenceException or InvalidOperationException or KeyNotFoundException)
-        {
-            // The host is not running (demo mode, tests): use the id, and do not remember it so a later lookup can succeed
-            return Prettify(id);
-        }
-    }
-
-    /// <summary>AILMENT_CLAW_FLINCH -> Claw Flinch</summary>
-    internal static string Prettify(string id)
-    {
-        int separator = id.IndexOf('_');
-        string body = separator >= 0 ? id[(separator + 1)..] : id;
-
-        return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(body.Replace('_', ' ').ToLowerInvariant());
-    }
+    internal static string Prettify(string id) => AilmentNames.Prettify(id);
 
     private static IBrush Brush(string color) => new ImmutableSolidColorBrush(Color.Parse(color));
 }

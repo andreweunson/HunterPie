@@ -92,7 +92,7 @@ public partial class App : Application
     {
         try
         {
-            await HostBootstrapper.InitializeAsync(new HostOptions(false, false, Options.Verbose, null));
+            await HostBootstrapper.InitializeAsync(new HostOptions(false, false, Options.Verbose, null, Options.WriteLogs));
 
             _session = DependencyContainer.Get<GameSessionController>();
             _session.ReportToConsole = Options.Verbose;

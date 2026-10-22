@@ -51,6 +51,16 @@
                     </StackPanel>
                 </Border>
 
+                <Border Classes="section" Name="LogsSection">
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="heading" Text="Hunt logs" Margin="0" />
+                        <TextBlock Opacity="0.6" TextWrapping="Wrap"
+                                   Text="Each hunt is saved with a summary at the end, and a session log keeps every debug message." />
+                        <TextBlock Name="LogPath" FontFamily="monospace" FontSize="12" TextWrapping="Wrap" />
+                        <Button Content="Open log folder" HorizontalAlignment="Left" Click="OnOpenLogsClick" />
+                    </StackPanel>
+                </Border>
+
                 <TextBlock Classes="heading" Text="Widgets" Margin="2,6,0,0" />
 
                 <Border Classes="section">

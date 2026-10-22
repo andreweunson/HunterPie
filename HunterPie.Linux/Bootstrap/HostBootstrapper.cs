@@ -8,6 +8,7 @@ using HunterPie.DI;
 using HunterPie.DI.Module;
 using HunterPie.DI.Registry;
 using HunterPie.Integrations.Datasources.MonsterHunterRise.Services;
+using HunterPie.Linux.Logging;
 using HunterPie.Platforms.Common.Logging;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -20,6 +21,9 @@ namespace HunterPie.Linux.Bootstrap;
 /// </summary>
 internal static class HostBootstrapper
 {
+    /// <summary>The log files of this run, or null with --no-logs or when the log directory cannot be used</summary>
+    public static LogSink? LogSink { get; private set; }
+
     public static async Task InitializeAsync(HostOptions options)
     {
         RegisterMappers();
@@ -29,16 +33,29 @@ internal static class HostBootstrapper
         ClientConfig.Initialize();
         ConfigManager.Initialize();
 
+        // HunterPie's log level drops messages before any writer sees them, so it stays at Debug and the console writer
+        // does its own filtering (debug lines only with --verbose). That is what lets the log files hold everything.
+        ClientConfig.Config.Development.ClientLogLevel.Value = LogLevel.Debug;
+
         // Log output goes to the terminal, via the Linux writer registered by the platform module
-        LoggerFactory.Add(DependencyContainer.Get<INativeLogWriter>());
+        LoggerFactory.Add(new ConsoleLogFilter(DependencyContainer.Get<INativeLogWriter>(), options.Verbose));
+
+        if (options.WriteLogs)
+        {
+            var sink = new LogSink(LogLocation.Directory, DateTime.Now);
+
+            if (sink.SessionPath is not null)
+            {
+                LogSink = sink;
+                LoggerFactory.Add(new FileLogWriter(sink));
+                LoggerFactory.Create().Info($"Writing logs to {sink.Directory}");
+            }
+        }
 
         if (!File.Exists(Path.Combine(ClientInfo.LanguagesPath, "en-us.xml")))
             LoggerFactory.Create().Warning(
                 "Localization files were not found, so monster and quest names will show as ids. " +
                 "Run `git submodule update --init` and rebuild.");
-
-        if (options.Verbose)
-            ClientConfig.Config.Development.ClientLogLevel.Value = LogLevel.Debug;
     }
 
     // Same set as the WPF client's MapperFactoryInitializer

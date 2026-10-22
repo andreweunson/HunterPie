@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="HunterPie.Linux.Overlay" />
+    <InternalsVisibleTo Include="HunterPie.Linux.Overlay.Tests" />
   </ItemGroup>
 
   <ItemGroup>

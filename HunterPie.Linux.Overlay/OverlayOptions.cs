@@ -1,6 +1,6 @@
 namespace HunterPie.Linux.Overlay;
 
-internal sealed record OverlayOptions(bool ShowHelp, bool Edit, bool Demo, bool Verbose, int? Screen, bool ToggleEdit = false, bool OverrideRedirect = false)
+internal sealed record OverlayOptions(bool ShowHelp, bool Edit, bool Demo, bool Verbose, int? Screen, bool ToggleEdit = false, bool OverrideRedirect = false, bool WriteLogs = true)
 {
     public const string Usage = """
         HunterPie overlay for Linux
@@ -15,6 +15,8 @@ internal sealed record OverlayOptions(bool ShowHelp, bool Edit, bool Demo, bool 
           --override-redirect
                           Experimental: bypass the window manager so the overlay stays above a fullscreen
                           game. Such a window cannot take keyboard focus (use the on-screen buttons)
+          --no-logs       Do not write log files (a session log and one file per hunt with a summary, in
+                          ~/.local/state/HunterPie/logs or $HUNTERPIE_LOG_DIR)
           -h, --help      Show this help
 
         While running, `HunterPie.Linux.Overlay --toggle-edit` (or `kill -USR1 <pid>`) toggles layout edit mode
@@ -25,7 +27,7 @@ internal sealed record OverlayOptions(bool ShowHelp, bool Edit, bool Demo, bool 
 
     public static OverlayOptions Parse(string[] args)
     {
-        bool help = false, edit = false, demo = false, verbose = false, toggle = false, overrideRedirect = false;
+        bool help = false, edit = false, demo = false, verbose = false, toggle = false, overrideRedirect = false, noLogs = false;
         int? screen = null;
 
         for (int i = 0; i < args.Length; i++)
@@ -47,6 +49,9 @@ internal sealed record OverlayOptions(bool ShowHelp, bool Edit, bool Demo, bool 
                 case "--toggle-edit":
                     toggle = true;
                     break;
+                case "--no-logs":
+                    noLogs = true;
+                    break;
                 case "--override-redirect":
                     overrideRedirect = true;
                     break;
@@ -61,6 +66,6 @@ internal sealed record OverlayOptions(bool ShowHelp, bool Edit, bool Demo, bool 
             }
         }
 
-        return new OverlayOptions(help, edit, demo, verbose, screen, toggle, overrideRedirect);
+        return new OverlayOptions(help, edit, demo, verbose, screen, toggle, overrideRedirect, !noLogs);
     }
 }

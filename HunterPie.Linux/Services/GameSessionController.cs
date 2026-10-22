@@ -4,6 +4,8 @@ using HunterPie.Core.Game;
 using HunterPie.Core.Observability.Logging;
 using HunterPie.Features.Scan.Service;
 using HunterPie.Integrations.Services;
+using HunterPie.Linux.Bootstrap;
+using HunterPie.Linux.Logging;
 
 namespace HunterPie.Linux.Services;
 
@@ -25,6 +27,7 @@ internal sealed class GameSessionController(
     private CancellationTokenSource? _scanCancellation;
     private Context? _context;
     private ConsoleReporter? _reporter;
+    private HuntRecorder? _recorder;
 
     /// <summary>
     /// Raised with the new game context before the scan loop starts, so listeners never miss the first events
@@ -59,6 +62,9 @@ internal sealed class GameSessionController(
             if (ReportToConsole)
                 _reporter = new ConsoleReporter(_context);
 
+            if (HostBootstrapper.LogSink is { } sink)
+                _recorder = new HuntRecorder(_context, sink);
+
             ContextStarted?.Invoke(this, _context);
             _scanService.Start(_scanCancellation.Token);
         }
@@ -82,6 +88,7 @@ internal sealed class GameSessionController(
 
         scanCancellation?.Cancel();
         _reporter?.Dispose();
+        _recorder?.Dispose();
         _context?.Dispose();
 
         // The scan loop may still be observing the token for a moment after Cancel(); disposing right away makes it throw
@@ -89,6 +96,7 @@ internal sealed class GameSessionController(
             _ = Task.Delay(TimeSpan.FromSeconds(2)).ContinueWith(_ => scanCancellation.Dispose(), TaskScheduler.Default);
 
         _reporter = null;
+        _recorder = null;
         _context = null;
         _scanCancellation = null;
     }

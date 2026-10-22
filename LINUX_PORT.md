@@ -48,6 +48,43 @@ build prints a blocked-connection warning for Avalonia build telemetry; set `AVA
 
 Widgets today: monster health (name, bar, numbers, enrage badge, stamina, weaknesses, ailments; one card per monster), quest timer and damage meter.
 
+## Logs
+
+Both the headless host and the overlay write log files (turn off with `--no-logs`) to `$HUNTERPIE_LOG_DIR`, else
+`$XDG_STATE_HOME/HunterPie/logs`, else `~/.local/state/HunterPie/logs`. The settings window has an "Open log folder" button.
+
+- `session-<date>-<time>.log`: everything HunterPie logs, **debug lines included** (the console only shows them with
+  `--verbose`), plus the game events below, plus each hunt's summary. One per run.
+- `hunt-<date>-<time>-<quest>.log`: one per hunt, opened when the quest starts and closed with a summary when it ends
+  (or when the game closes, marked "Interrupted"). It starts with what happened since you entered the hunting zone,
+  because the fight usually begins before the quest clock does.
+
+Events are written as `[time][EVENT][+quest clock] text`: stage changes, monsters spawning, losing health (whole-percent
+steps), becoming enraged or exhausted, ailments being inflicted, the party changing, quest start and end, fainting. The
+summary has the result and duration, each monster that took damage (outcome, enrages, exhaustions, ailment counts, with
+the others listed as not engaged) and the party's damage, share and DPS (the same "damage before the quest clock does
+not count" rule as the overlay). The flinch gauge is not logged: the game's counter for it misses most flinches.
+
+```
+===== Hunt summary =====
+Quest:     (unnamed) (id 392, Hunt)
+Result:    Success
+Duration:  04:49  (13:37:20 to 13:42:10)
+Monsters
+  Chatacabra (id 19): slain (0 / 10,080 HP when last seen)
+      enraged 3x for 01:12 in total, exhausted 1x for 00:40 in total
+      ailments: Poison x2
+  Not engaged: Tempered Balahara x3
+Party damage
+  1. Rock (you) [HuntingHorn]  9,100 damage  91%  31.9 DPS
+```
+
+Only the newest 20 session logs and 100 hunt logs are kept; nothing else in the folder is touched. A log directory that
+cannot be written turns file logging off with one warning instead of affecting the game reading.
+
+HunterPie's own log level setting drops messages before any writer sees them, so the host keeps it at Debug and filters
+the console itself; the level in `config.json` is no longer what decides what the console shows.
+
 ## How it works
 - `HunterPie.Platforms/Linux/` implements the platform interfaces: process discovery (`/proc/*/cmdline` + the PE image
   in `/proc/<pid>/maps`, which also gives the `BASE` address), memory (`/proc/<pid>/mem`), game version (PE
@@ -64,6 +101,7 @@ Widgets today: monster health (name, bar, numbers, enrage badge, stamina, weakne
 | Headless host | Done; attach, scan loop, shutdown and `--doctor` exercised against a fake game process |
 | Real-game test | Wilds 1.42.0.2 on Proton: attach, login, stage, quest, monster HP and enrage verified. World and Rise not yet tried |
 | Overlay (`HunterPie.Linux.Overlay`) | Monster health, quest timer and damage meter (per-player damage, share of team damage, DPS counted from when each member was first seen). Monster (health, capture marker, stamina, weaknesses, portrait) and quest widgets: the first version was confirmed over the real game on KDE, the additions are verified on a virtual X server and against fake monsters; the damage meter (with weapon icons, stats and DPS graph) is verified on a virtual X server and against a fake party only |
+| Log files (session and per-hunt, with summary) | Verified against a fake game and on the host with no game; not yet seen on a real hunt |
 | Remaining WPF widgets (player vitals, abnormalities, parts, crown and monster type) | Not ported: `HunterPie.UI` is 424 C# / 116 XAML files |
 | Native module (DLL injection), Discord RPC, updater | Windows only for now |
 

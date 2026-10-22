@@ -1,6 +1,7 @@
 using Avalonia.Media;
 using HunterPie.Core.Game.Entity.Enemy;
 using HunterPie.Linux.Overlay.Services;
+using HunterPie.Linux.Services;
 using System.Diagnostics;
 
 namespace HunterPie.Linux.Overlay.ViewModels;
@@ -32,12 +33,6 @@ public sealed class AilmentViewModel : ViewModelBase
 
     public string Id { get; }
 
-    /// <summary>
-    /// The game's ailment table calls entry 14 "exhaust", but on a real hunt it is a gauge that fills as the monster is
-    /// hit, decays slowly, and resets with a larger maximum when it flinches; its timer never runs. The real exhaust
-    /// is the monster's stamina object (see the stamina bar), so this entry is shown as the flinch gauge.
-    /// </summary>
-    private static bool IsFlinchGauge(IMonsterAilment ailment) => ailment.Id == "AILMENT_EXHAUST" && ailment.Definition.Id == 14;
 
     public string Name { get; }
 
@@ -62,8 +57,8 @@ public sealed class AilmentViewModel : ViewModelBase
     {
         Source = source;
         Id = source.Id;
-        bool flinch = IsFlinchGauge(source);
-        Name = flinch ? "Flinch" : AilmentStyle.NameFor(source.Id);
+        bool flinch = AilmentNames.IsFlinchGauge(source);
+        Name = AilmentNames.NameFor(source);
         Brush = flinch ? AilmentStyle.FlinchBrush : AilmentStyle.BrushFor(source.Id);
         Refresh();
     }
@@ -77,8 +72,7 @@ public sealed class AilmentViewModel : ViewModelBase
     }
 
     /// <summary>Ailments the game lists but that have no name, and the enrage entry the monster reports separately</summary>
-    public static bool IsDisplayable(IMonsterAilment ailment) =>
-        !ailment.Definition.IsUnknown && ailment.Id != "AILMENT_ENRAGE";
+    public static bool IsDisplayable(IMonsterAilment ailment) => AilmentNames.IsDisplayable(ailment);
 
     public void Refresh()
     {

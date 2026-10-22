@@ -1,7 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Platform;
 using Avalonia.Interactivity;
+using HunterPie.Linux.Logging;
 using HunterPie.Linux.Overlay.ViewModels;
+using System.Diagnostics;
 
 namespace HunterPie.Linux.Overlay.Views;
 
@@ -17,7 +19,11 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
         DataContextChanged += (_, _) => WatchEditing();
-        Opened += (_, _) => FillMonitors();
+        Opened += (_, _) =>
+        {
+            FillMonitors();
+            ShowLogLocation();
+        };
     }
 
     private bool _fillingMonitors;
@@ -50,6 +56,30 @@ public partial class SettingsWindow : Window
     {
         if (!_fillingMonitors && ViewModel is { } viewModel && MonitorBox.SelectedIndex >= 0)
             viewModel.Layout.Screen = MonitorBox.SelectedIndex;
+    }
+
+    private string? _logDirectory;
+
+    private void ShowLogLocation()
+    {
+        _logDirectory = LogLocation.Directory;
+        LogsSection.IsVisible = App.Options.WriteLogs && !App.Options.Demo;
+        LogPath.Text = _logDirectory;
+    }
+
+    private void OnOpenLogsClick(object? sender, RoutedEventArgs e)
+    {
+        if (_logDirectory is null)
+            return;
+
+        try
+        {
+            Process.Start(new ProcessStartInfo("xdg-open", [_logDirectory]) { UseShellExecute = false });
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            LogPath.Text = $"{_logDirectory}\n(xdg-open is not available)";
+        }
     }
 
     private void OnResetClick(object? sender, RoutedEventArgs e) => ViewModel?.Layout.ResetLayout();
