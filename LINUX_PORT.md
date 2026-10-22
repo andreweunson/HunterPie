@@ -58,7 +58,7 @@ Widgets today: monster health (name, bar, numbers, enrage badge; one card per mo
 | Linux platform layer | Done |
 | Headless host | Done; attach, scan loop, shutdown and `--doctor` exercised against a fake game process |
 | Real-game test | Wilds 1.42.0.2 on Proton: attach, login, stage, quest, monster HP and enrage verified. World and Rise not yet tried |
-| Overlay (`HunterPie.Linux.Overlay`) | Monster health, quest timer and damage meter (per-player damage, share of team damage, DPS counted from when each member was first seen). Monster/quest widgets confirmed over the real game on KDE; the damage meter (with weapon icons, stats and DPS graph) is verified on a virtual X server and against a fake party only |
+| Overlay (`HunterPie.Linux.Overlay`) | Monster health, quest timer and damage meter (per-player damage, share of team damage, DPS counted from when each member was first seen). Monster (health, capture marker, stamina, weaknesses, portrait) and quest widgets: the first version was confirmed over the real game on KDE, the additions are verified on a virtual X server and against fake monsters; the damage meter (with weapon icons, stats and DPS graph) is verified on a virtual X server and against a fake party only |
 | Remaining WPF widgets (player vitals, abnormalities, damage meter, parts, ailments, settings UI) | Not ported: `HunterPie.UI` is 424 C# / 116 XAML files |
 | Native module (DLL injection), Discord RPC, updater | Windows only for now |
 
@@ -80,6 +80,24 @@ the overlay becomes an unmanaged X11 window, which compositors normally stack ab
 keyboard focus (Esc / Ctrl+Q do nothing, the on-screen buttons and `--toggle-edit` still work). Whether it helps
 depends on your compositor and on whether the game itself runs under XWayland. Not verified against a real
 compositor, only on a bare X server.
+
+### Monster widget
+
+Monster cards sit side by side. Each shows the monster's portrait on a tilted square whose outline marks tempered
+(purple), arch-tempered (orange) and frenzied (pink) variants, the health bar with a marker where the monster can be
+captured (dim above the threshold, bright with a CAPTURE badge once it is at or below it), a stamina bar with its
+numbers and the elements it is weak to (the vector art from `HunterPie.UI/Resources/Abnormalities.xaml`, copied into
+`Assets/ElementIcons.axaml`). Stamina and weaknesses only appear when the game reports them.
+
+In layout edit mode the Icons, Stamina and Weaknesses checkboxes switch those parts off; the choice is saved in
+`overlay.json`.
+
+**Portraits are downloaded.** HunterPie's monster icons are not in the source tree: like the Windows client, the
+overlay fetches `https://cdn.hunterpie.com/Assets/Monsters/Icons/<Game>_<id>.png` the first time a monster appears
+and keeps it in `$XDG_CACHE_HOME/HunterPie/monster-icons` (default `~/.cache/HunterPie/monster-icons`). A file is only
+accepted if it is a PNG under 512 KB that decodes; a missing portrait just leaves the empty tilted square. Turning the
+Icons checkbox off stops the downloads. `HUNTERPIE_ICON_CDN` points the overlay at a different server (a mirror, or a
+local one for testing).
 
 ### Damage meter
 

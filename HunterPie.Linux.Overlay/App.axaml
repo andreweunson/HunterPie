@@ -6,6 +6,7 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://HunterPie.Linux.Overlay/Assets/WeaponIcons.axaml" />
+                <ResourceInclude Source="avares://HunterPie.Linux.Overlay/Assets/ElementIcons.axaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

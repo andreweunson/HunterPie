@@ -110,6 +110,18 @@ public partial class OverlayWindow : Window
                 UpdateClickThrough();
         };
 
+        viewModel.MonsterOptions.ShowIcons = _settings.Monsters.ShowIcons;
+        viewModel.MonsterOptions.ShowStamina = _settings.Monsters.ShowStamina;
+        viewModel.MonsterOptions.ShowWeaknesses = _settings.Monsters.ShowWeaknesses;
+        viewModel.MonsterOptions.PropertyChanged += (_, _) =>
+        {
+            _settings.Monsters.ShowIcons = viewModel.MonsterOptions.ShowIcons;
+            _settings.Monsters.ShowStamina = viewModel.MonsterOptions.ShowStamina;
+            _settings.Monsters.ShowWeaknesses = viewModel.MonsterOptions.ShowWeaknesses;
+            Trace($"Monster widget options: icons={_settings.Monsters.ShowIcons}, stamina={_settings.Monsters.ShowStamina}, weaknesses={_settings.Monsters.ShowWeaknesses}");
+            SaveSettings();
+        };
+
         viewModel.Damage.ShowGraph = _settings.Damage.ShowGraph;
         viewModel.Damage.ShowStats = _settings.Damage.ShowStats;
         viewModel.Damage.PropertyChanged += (_, e) =>

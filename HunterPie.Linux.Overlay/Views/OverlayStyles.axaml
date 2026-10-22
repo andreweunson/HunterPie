@@ -80,10 +80,15 @@
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
 
+
     <Style Selector="Border.badge">
         <Setter Property="Background" Value="{DynamicResource EnrageBrush}" />
         <Setter Property="CornerRadius" Value="4" />
         <Setter Property="Padding" Value="6,1" />
+    </Style>
+    <!-- After the base style: later styles win -->
+    <Style Selector="Border.badge.capture">
+        <Setter Property="Background" Value="#FFD54F" />
     </Style>
 
 </Styles>

@@ -2,24 +2,77 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:HunterPie.Linux.Overlay.ViewModels"
              xmlns:views="using:HunterPie.Linux.Overlay.Views"
+             xmlns:enums="using:HunterPie.Core.Game.Enums"
              x:Class="HunterPie.Linux.Overlay.Views.MonsterCard"
              x:DataType="vm:MonsterViewModel">
-    <Border Classes="widget" Width="300">
-        <StackPanel Spacing="6">
-            <DockPanel LastChildFill="True">
-                <Border Classes="badge" DockPanel.Dock="Right" Margin="8,0,0,0"
-                        VerticalAlignment="Center" IsVisible="{Binding IsEnraged}">
-                    <TextBlock Text="ENRAGED" FontSize="10" FontWeight="Bold" Foreground="White" />
+    <Border Classes="widget" Width="330">
+        <Grid ColumnDefinitions="Auto,*">
+            <!-- Portrait on a tilted square whose outline shows the monster's variant. Column 0 collapses when off -->
+            <Grid Width="46" Height="46" Margin="0,0,10,0" VerticalAlignment="Top"
+                  IsVisible="{Binding Options.ShowIcons}">
+                <Border Width="30" Height="30" CornerRadius="4" BorderThickness="2"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        BorderBrush="{Binding VariantBrush}" Background="#33FFFFFF">
+                    <Border.RenderTransform>
+                        <RotateTransform Angle="45" />
+                    </Border.RenderTransform>
                 </Border>
-                <TextBlock Classes="title" Text="{Binding Name}" />
-            </DockPanel>
+                <Image Width="42" Height="42" Stretch="Uniform" Source="{Binding Icon}" />
+            </Grid>
 
-            <views:HealthBar Height="8" Percent="{Binding Percent}" />
+            <StackPanel Grid.Column="1" Spacing="4">
+                <DockPanel LastChildFill="True">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4" Margin="8,0,0,0"
+                                VerticalAlignment="Center">
+                        <Border Classes="badge capture" IsVisible="{Binding IsCapturable}">
+                            <TextBlock Text="CAPTURE" FontSize="10" FontWeight="Bold" Foreground="#1A1A1A" />
+                        </Border>
+                        <Border Classes="badge" IsVisible="{Binding IsEnraged}">
+                            <TextBlock Text="ENRAGED" FontSize="10" FontWeight="Bold" Foreground="White" />
+                        </Border>
+                    </StackPanel>
+                    <TextBlock Classes="title" Text="{Binding Name}" />
+                </DockPanel>
 
-            <DockPanel>
-                <TextBlock Classes="number" DockPanel.Dock="Right" Text="{Binding PercentText}" />
-                <TextBlock Classes="muted" FontFamily="monospace" Text="{Binding HealthText}" VerticalAlignment="Center" />
-            </DockPanel>
-        </StackPanel>
+                <views:HealthBar Height="16" Percent="{Binding Percent}" CaptureAt="{Binding CaptureAt}"
+                                 IsCapturable="{Binding IsCapturable}" />
+
+                <DockPanel>
+                    <TextBlock Classes="number" DockPanel.Dock="Right" Text="{Binding PercentText}" />
+                    <TextBlock Classes="muted" FontFamily="monospace" Text="{Binding HealthText}" VerticalAlignment="Center" />
+                </DockPanel>
+
+                <!-- Two nested panels: the outer one is the user's option, the inner one is whether there is data -->
+                <StackPanel IsVisible="{Binding Options.ShowStamina}">
+                    <StackPanel IsVisible="{Binding HasStamina}">
+                        <views:StaminaBar Height="6" Percent="{Binding StaminaPercent}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" IsVisible="{Binding Options.ShowStamina}">
+                        <TextBlock Classes="muted" FontFamily="monospace" FontSize="11" IsVisible="{Binding HasStamina}"
+                                   Text="{Binding StaminaText, StringFormat='STA {0}'}" />
+                    </StackPanel>
+                    <StackPanel IsVisible="{Binding Options.ShowWeaknesses}">
+                        <ItemsControl ItemsSource="{Binding Weaknesses}" IsVisible="{Binding HasWeaknesses}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="4" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="enums:Element">
+                                    <Border Width="22" Height="22" CornerRadius="11" Background="#33FFFFFF"
+                                            BorderBrush="#33FFFFFF" BorderThickness="1">
+                                        <views:ElementIcon Margin="3" Element="{Binding}" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </DockPanel>
+            </StackPanel>
+        </Grid>
     </Border>
 </UserControl>

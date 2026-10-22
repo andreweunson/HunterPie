@@ -1,6 +1,7 @@
 using Avalonia.Threading;
 using HunterPie.Core.Game;
 using HunterPie.Core.Game.Entity.Enemy;
+using HunterPie.Core.Game.Enums;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 
@@ -20,6 +21,8 @@ public sealed class OverlayViewModel : ViewModelBase
     // Damage only changes a few times a second, so it is refreshed at a quarter of the 100 ms timer rate
     private static readonly TimeSpan DamageRefreshInterval = TimeSpan.FromMilliseconds(250);
 
+    public MonsterOptions MonsterOptions { get; } = new();
+
     public ObservableCollection<MonsterViewModel> Monsters { get; } = new();
 
     public QuestViewModel Quest { get; } = new();
@@ -27,7 +30,7 @@ public sealed class OverlayViewModel : ViewModelBase
     public DamageViewModel Damage { get; } = new();
 
     /// <summary>Placeholder card shown in edit mode while no monster is present</summary>
-    public MonsterViewModel Sample { get; } = new("Monster (sample)", 6500, 10000, true);
+    public MonsterViewModel Sample { get; }
 
     /// <summary>The demo feed drives the view models itself, so the game-backed refresh is skipped</summary>
     public bool IsDemo
@@ -65,6 +68,21 @@ public sealed class OverlayViewModel : ViewModelBase
 
     public OverlayViewModel()
     {
+        Sample = new MonsterViewModel("Monster (sample)", 6500, 10000, true, MonsterOptions);
+        Sample.SetStamina(620, 1000);
+        Sample.SetCapture(0.35);
+        Sample.SetDetails([Element.Thunder, Element.Ice], VariantType.Normal);
+
+        // Turning portraits on while monsters are already in the list should fetch them
+        MonsterOptions.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName != nameof(MonsterOptions.ShowIcons))
+                return;
+
+            foreach (MonsterViewModel monster in Monsters)
+                monster.EnsureIcon();
+        };
+
         Monsters.CollectionChanged += (_, _) =>
         {
             Raise(nameof(ShowMonsters));
@@ -153,7 +171,7 @@ public sealed class OverlayViewModel : ViewModelBase
         if (Monsters.Any(it => ReferenceEquals(it.Source, monster)))
             return;
 
-        Monsters.Add(new MonsterViewModel(monster));
+        Monsters.Add(new MonsterViewModel(monster, MonsterOptions));
     }
 
     private void Tick()

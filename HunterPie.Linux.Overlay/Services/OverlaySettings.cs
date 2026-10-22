@@ -21,6 +21,22 @@ public class WidgetPlacement
     }
 }
 
+/// <summary>The monster widget's position plus what it shows</summary>
+public sealed class MonsterPlacement : WidgetPlacement
+{
+    public bool ShowIcons { get; set; } = true;
+    public bool ShowStamina { get; set; } = true;
+    public bool ShowWeaknesses { get; set; } = true;
+
+    public MonsterPlacement()
+    {
+    }
+
+    public MonsterPlacement(double x, double y) : base(x, y)
+    {
+    }
+}
+
 /// <summary>The damage widget's position plus what it shows</summary>
 public sealed class DamagePlacement : WidgetPlacement
 {
@@ -50,7 +66,7 @@ public sealed class OverlaySettings
 
     public WidgetPlacement Quest { get; set; } = new(40, 40);
 
-    public WidgetPlacement Monsters { get; set; } = new(40, 150);
+    public MonsterPlacement Monsters { get; set; } = new(40, 150);
 
     public DamagePlacement Damage { get; set; } = new(40, 360);
 
