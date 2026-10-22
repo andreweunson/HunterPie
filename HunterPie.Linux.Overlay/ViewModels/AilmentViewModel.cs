@@ -22,6 +22,7 @@ public sealed class AilmentViewModel : ViewModelBase
     private int _lastWholeSeconds = -1;
     private long _lastChange;
     private int _lastLoggedStep = -1;
+    private float _rawBuildUp;
 
     private double _timerFraction;
     private double _buildUpFraction;
@@ -108,6 +109,8 @@ public sealed class AilmentViewModel : ViewModelBase
             changed = true;
         }
 
+        _rawBuildUp = buildUp;
+
         if (InvertsBuildUp && maxBuildUp > 0)
             buildUp = Math.Clamp(maxBuildUp - buildUp, 0, maxBuildUp);
 
@@ -126,20 +129,22 @@ public sealed class AilmentViewModel : ViewModelBase
         UpdateText(changed);
         UpdateVisibility();
 
-        if (changed && App.Options.Verbose)
+        // Only exhaust is logged for now: its meaning is still being worked out, and logging every ailment drowns the output
+        if (changed && App.Options.Verbose && InvertsBuildUp)
             LogChange();
     }
 
-    // Debug output (--verbose): one line per 10% of build-up and per timer or counter change, to compare with the game
+    // Debug output (--verbose, exhaust only): one line per 5% step of the gauge and on every timer or counter change,
+    // with the value the game reports and the one the ring shows
     private void LogChange()
     {
-        int step = (int)(BuildUpFraction * 10);
+        int step = (int)(BuildUpFraction * 20);
 
         if (step == _lastLoggedStep && !IsTimerActive)
             return;
 
         _lastLoggedStep = step;
-        Console.WriteLine($"[{DateTime.Now:HH:mm:ss}][DEBUG] [Ailment] {Id}: timer {_timer:0.0}/{_maxTimer:0.0}, build-up {_buildUp:0}/{_maxBuildUp:0}{(InvertsBuildUp ? " (inverted: stamina left is " + (_maxBuildUp - _buildUp).ToString("0") + ")" : "")}, count {_count}");
+        Console.WriteLine($"[{DateTime.Now:HH:mm:ss}][DEBUG] [Ailment] {Id}: game build-up {_rawBuildUp:0}/{_maxBuildUp:0}, ring {BuildUpFraction:P0}, timer {_timer:0.0}/{_maxTimer:0.0}, count {_count}");
     }
 
     private void UpdateText(bool changed)
