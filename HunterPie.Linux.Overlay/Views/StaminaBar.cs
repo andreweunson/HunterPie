@@ -13,7 +13,7 @@ public sealed class StaminaBar : Control
     public static readonly StyledProperty<bool> IsExhaustedProperty =
         AvaloniaProperty.Register<StaminaBar, bool>(nameof(IsExhausted));
 
-    private static readonly IBrush ExhaustedFill = new SolidColorBrush(Color.Parse("#74D4B1"));
+    private static readonly IBrush ExhaustedFill = new SolidColorBrush(Color.Parse("#ff704d"));
     private static readonly IBrush Track = new SolidColorBrush(Color.Parse("#33FFFFFF"));
     private static readonly IBrush Fill = new SolidColorBrush(Color.Parse("#F5D06B"));
 
