@@ -65,6 +65,12 @@ public sealed class PlayerDamageViewModel : ViewModelBase
     /// <summary>Quest time (seconds) at which this member was first seen, used for the DPS denominator</summary>
     public double JoinedAt { get; }
 
+    /// <summary>
+    /// Damage the member already had when first seen. It was not dealt within the time DPS is divided by (the quest
+    /// clock can start well after the fight did), so it is shown but left out of DPS.
+    /// </summary>
+    public int BaselineDamage { get; }
+
     /// <summary>0-3 for players in party order, <see cref="CompanionSlot"/> for support hunters</summary>
     public int Slot { get; }
 
@@ -90,10 +96,11 @@ public sealed class PlayerDamageViewModel : ViewModelBase
 
     public string ShareText { get => _shareText; private set => Set(ref _shareText, value); }
 
-    public PlayerDamageViewModel(IPartyMember source, double joinedAt)
+    public PlayerDamageViewModel(IPartyMember source, double joinedAt, int baselineDamage = 0)
     {
         Source = source;
         JoinedAt = joinedAt;
+        BaselineDamage = Math.Max(baselineDamage, 0);
         IsSelf = source.IsMyself;
         Slot = source.Type == MemberType.Player ? Math.Clamp(source.Slot, 0, CompanionSlot - 1) : CompanionSlot;
         Name = source.Name;

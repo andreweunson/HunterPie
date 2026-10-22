@@ -21,6 +21,7 @@ public sealed class AilmentViewModel : ViewModelBase
     private int _count = -1;
     private int _lastWholeSeconds = -1;
     private long _lastChange;
+    private int _lastLoggedStep = -1;
 
     private double _timerFraction;
     private double _buildUpFraction;
@@ -31,6 +32,13 @@ public sealed class AilmentViewModel : ViewModelBase
     public IMonsterAilment? Source { get; }
 
     public string Id { get; }
+
+    /// <summary>
+    /// Exhaust is the exception: the game's "build-up" for it is the monster's remaining stamina (the same value the
+    /// stamina bar shows). It starts full and refills on its own, and the monster is exhausted when it hits zero. So the
+    /// gauge counts down towards the effect, and "closeness to exhausted" is what the ring should show.
+    /// </summary>
+    private bool InvertsBuildUp => Id == "AILMENT_EXHAUST";
 
     public string Name { get; }
 
@@ -100,6 +108,9 @@ public sealed class AilmentViewModel : ViewModelBase
             changed = true;
         }
 
+        if (InvertsBuildUp && maxBuildUp > 0)
+            buildUp = Math.Clamp(maxBuildUp - buildUp, 0, maxBuildUp);
+
         if (buildUp != _buildUp || maxBuildUp != _maxBuildUp)
         {
             _buildUp = buildUp;
@@ -114,6 +125,21 @@ public sealed class AilmentViewModel : ViewModelBase
 
         UpdateText(changed);
         UpdateVisibility();
+
+        if (changed && App.Options.Verbose)
+            LogChange();
+    }
+
+    // Debug output (--verbose): one line per 10% of build-up and per timer or counter change, to compare with the game
+    private void LogChange()
+    {
+        int step = (int)(BuildUpFraction * 10);
+
+        if (step == _lastLoggedStep && !IsTimerActive)
+            return;
+
+        _lastLoggedStep = step;
+        Console.WriteLine($"[{DateTime.Now:HH:mm:ss}][DEBUG] [Ailment] {Id}: timer {_timer:0.0}/{_maxTimer:0.0}, build-up {_buildUp:0}/{_maxBuildUp:0}{(InvertsBuildUp ? " (inverted: stamina left is " + (_maxBuildUp - _buildUp).ToString("0") + ")" : "")}, count {_count}");
     }
 
     private void UpdateText(bool changed)

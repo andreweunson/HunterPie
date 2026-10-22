@@ -12,6 +12,9 @@ namespace HunterPie.Linux.Overlay.ViewModels;
 /// </summary>
 public sealed class DamageViewModel : ViewModelBase
 {
+    // A member first seen within this many seconds of the quest clock starting may carry damage from before it
+    private const double EarlyQuestSeconds = 15;
+
     private readonly List<IPartyMember> _snapshot = new(8);
     private bool _isActive;
     private bool _isEditing;
@@ -259,8 +262,11 @@ public sealed class DamageViewModel : ViewModelBase
             if (Contains(member))
                 continue;
 
-            // Members already there when we start looking are assumed to have been there since the beginning
-            Rows.Add(new PlayerDamageViewModel(member, _primed ? elapsed : 0) { ShowStats = ShowStats });
+            // Members already there when we start looking are assumed to have been there since the beginning. Damage
+            // they already have when first seen does not count towards DPS if that is early in the quest (the quest
+            // clock can start after the fight did) or if they joined later; attaching mid-quest keeps the old behaviour.
+            int baseline = _primed || elapsed < EarlyQuestSeconds ? Math.Max(member.Damage, 0) : 0;
+            Rows.Add(new PlayerDamageViewModel(member, _primed || baseline > 0 ? elapsed : 0, baseline) { ShowStats = ShowStats });
         }
 
         if (Rows.Count > 0)
@@ -294,7 +300,7 @@ public sealed class DamageViewModel : ViewModelBase
             row.SetName(member.Name);
             row.SetWeapon(member.Weapon);
             row.SetStatus(member.Status);
-            row.Set(damage, damage / seconds, total > 0 ? damage * 100.0 / total : 0);
+            row.Set(damage, Math.Max(damage - row.BaselineDamage, 0) / seconds, total > 0 ? damage * 100.0 / total : 0);
         }
 
         UpdateSummary(total, elapsed);

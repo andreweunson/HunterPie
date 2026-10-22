@@ -111,7 +111,8 @@ Ailments: under the health bar each monster shows a ring per ailment, as in the 
 ailment's colour) is the time left while the effect is active, with the countdown below it; the inner blue arc is the
 build-up towards triggering it, with a percentage; the number in the middle is how often it has been inflicted. Enrage
 is the first ring. A ring appears when its values start changing and hides 15 s after the last change. Entries the game
-lists without a name are skipped. The Ailments checkbox in the settings window turns the row off. Names come from the
+lists without a name are skipped. Exhaust is shown inverted: the game's build-up value for it is the monster's remaining stamina,
+so its ring fills as the stamina runs out. With `--verbose` every ailment's changes are logged (`[Ailment] ...`). The Ailments checkbox in the settings window turns the row off. Names come from the
 language file (`Languages/en-us.xml`), colours match the Windows client.
 
 ### Damage meter
@@ -131,4 +132,6 @@ The Damage meter section of the settings window turns the graph and the stats li
 The final numbers stay on screen after a quest ends and clear when you leave the hunting zone or a new quest
 starts. The meter is polled four times a second from the party data the host already scans, so it adds no memory
 reads. Players already in the party when the overlay first looks count from the start of the quest, so attaching
-mid-quest gives each of them a DPS averaged over the whole quest.
+mid-quest gives each of them a DPS averaged over the whole quest. The quest clock can start after the fight did (the
+monster is tagged first), so damage a hunter already has when first seen in the first 15 s, or when joining later, is
+shown in the damage column but left out of DPS; otherwise the first seconds would show an absurd peak.
