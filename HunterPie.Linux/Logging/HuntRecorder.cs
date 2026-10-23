@@ -33,7 +33,8 @@ internal sealed class HuntRecorder : IDisposable
 
     private IQuest? _quest;
     private DateTime _questStartedAt;
-    private int _faints;
+    private int _carts;
+    private int _maxCarts;
     private bool _disposed;
 
     public HuntRecorder(Context context, LogSink sink)
@@ -44,7 +45,6 @@ internal sealed class HuntRecorder : IDisposable
         _context.Game.Player.OnLogin += OnLogin;
         _context.Game.Player.OnLogout += OnLogout;
         _context.Game.Player.OnStageUpdate += OnStageUpdate;
-        _context.Game.Player.OnDeath += OnDeath;
         _context.Game.OnMonsterSpawn += OnMonsterSpawn;
         _context.Game.OnMonsterDespawn += OnMonsterDespawn;
         _context.Game.OnQuestStart += OnQuestStart;
@@ -74,12 +74,21 @@ internal sealed class HuntRecorder : IDisposable
         }
     }
 
-    private void OnDeath(object? sender, EventArgs e)
+    // The game keeps one faint counter for the whole party and the player object never reports its own
+    // death, so this counts the party's carts rather than the local player's.
+    private void OnCartCounterChange(object? sender, CounterChangeEventArgs e)
     {
         lock (_lock)
         {
-            _faints++;
-            Event($"Player fainted (#{_faints})");
+            if (!QuestActive)
+                return;
+
+            int previous = _carts;
+            _carts = e.Current;
+            _maxCarts = e.Max;
+
+            if (e.Current > previous)
+                Event($"Party fainted: {e.Current} of {e.Max} carts used");
         }
     }
 
@@ -89,7 +98,9 @@ internal sealed class HuntRecorder : IDisposable
         {
             _quest = quest;
             _questStartedAt = DateTime.Now;
-            _faints = 0;
+            _carts = quest.Deaths;
+            _maxCarts = quest.MaxDeaths;
+            quest.OnDeathCounterChange += OnCartCounterChange;
 
             string name = QuestName(quest);
             string[] header =
@@ -121,7 +132,15 @@ internal sealed class HuntRecorder : IDisposable
 
             PollMembers();
             Event($"Quest ended: {e.Status} after {e.TimeElapsed.TotalSeconds:F0}s");
-            _sink.EndHunt(BuildSummary(e.Quest ?? _quest!, e.Status.ToString(), e.TimeElapsed));
+
+            // The last reading before the quest object is torn down is the one that counts
+            IQuest finished = e.Quest ?? _quest!;
+            _carts = Math.Max(_carts, finished.Deaths);
+            _maxCarts = finished.MaxDeaths > 0 ? finished.MaxDeaths : _maxCarts;
+            finished.OnDeathCounterChange -= OnCartCounterChange;
+            _quest!.OnDeathCounterChange -= OnCartCounterChange;
+
+            _sink.EndHunt(BuildSummary(finished, e.Status.ToString(), e.TimeElapsed));
             _quest = null;
             _sink.SetBuffering(false);
         }
@@ -436,7 +455,8 @@ internal sealed class HuntRecorder : IDisposable
             $"Quest:     {QuestName(quest)} (id {quest.Id}, {quest.Type})",
             $"Result:    {result}",
             $"Duration:  {Clock(duration)}  ({_questStartedAt:HH:mm:ss} to {now:HH:mm:ss})",
-            $"Player:    {_context.Game.Player.Name}, fainted {_faints} time{(_faints == 1 ? "" : "s")}",
+            $"Player:    {_context.Game.Player.Name}",
+            $"Carts:     {_carts}{(_maxCarts > 0 ? $" of {_maxCarts}" : string.Empty)} used (the game counts these for the whole party)",
             string.Empty,
             "Monsters"
         };
@@ -509,6 +529,7 @@ internal sealed class HuntRecorder : IDisposable
             // The game closed (or HunterPie is stopping) in the middle of a hunt: still leave a summary
             if (_quest is { } quest)
             {
+                quest.OnDeathCounterChange -= OnCartCounterChange;
                 PollMembersSafe();
                 Event("Hunt interrupted: the game closed or HunterPie stopped");
                 _sink.EndHunt(BuildSummary(quest, "Interrupted", DateTime.Now - _questStartedAt));
@@ -518,7 +539,6 @@ internal sealed class HuntRecorder : IDisposable
             _context.Game.Player.OnLogin -= OnLogin;
             _context.Game.Player.OnLogout -= OnLogout;
             _context.Game.Player.OnStageUpdate -= OnStageUpdate;
-            _context.Game.Player.OnDeath -= OnDeath;
             _context.Game.OnMonsterSpawn -= OnMonsterSpawn;
             _context.Game.OnMonsterDespawn -= OnMonsterDespawn;
             _context.Game.OnQuestStart -= OnQuestStart;

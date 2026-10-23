@@ -60,7 +60,7 @@ Both the headless host and the overlay write log files (turn off with `--no-logs
   because the fight usually begins before the quest clock does.
 
 Events are written as `[time][EVENT][+quest clock] text`: stage changes, monsters spawning, losing health (whole-percent
-steps), becoming enraged or exhausted, ailments being inflicted, the party changing, quest start and end, fainting. The
+steps), becoming enraged or exhausted, ailments being inflicted, the party changing, quest start and end, and carts used (the game keeps one cart counter for the whole party, so this is the party total, not your own faints). The
 summary has the result and duration, each monster that took damage (outcome, enrages, exhaustions, ailment counts, with
 the others listed as not engaged) and the party's damage, share and DPS (the same "damage before the quest clock does
 not count" rule as the overlay). The flinch gauge is not logged: the game's counter for it misses most flinches.
