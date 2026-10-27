@@ -32,6 +32,9 @@ public sealed class MonsterPlacement : WidgetPlacement
     public bool ShowWeaknesses { get; set; } = true;
     public bool ShowAilments { get; set; } = true;
 
+    /// <summary>Ailment ids or names (with * and ? wildcards) that never get a ring, see <see cref="AilmentBlacklist"/></summary>
+    public List<string> HiddenAilments { get; set; } = [.. AilmentBlacklist.Defaults];
+
     public MonsterPlacement()
     {
     }
@@ -131,6 +134,11 @@ public sealed class OverlaySettings
             placement.Scale = double.IsFinite(placement.Scale) ? Math.Clamp(placement.Scale, 0.4, 3.0) : 1.0;
             placement.Opacity = double.IsFinite(placement.Opacity) ? Math.Clamp(placement.Opacity, 0.1, 1.0) : 1.0;
         }
+
+        // A file saved without the list keeps the defaults; one that lists nothing really hides nothing. Only junk goes.
+        settings.Monsters.HiddenAilments = [.. (settings.Monsters.HiddenAilments ?? [.. AilmentBlacklist.Defaults])
+            .Where(it => !string.IsNullOrWhiteSpace(it))
+            .Select(it => it.Trim())];
 
         settings.Screen = Math.Max(0, settings.Screen);
 

@@ -28,6 +28,8 @@ public sealed class AilmentViewModel : ViewModelBase
     private string _text = string.Empty;
     private bool _isTimerActive;
     private bool _isShown;
+    private bool _isActive;
+    private bool _isBlacklisted;
 
     public IMonsterAilment? Source { get; }
 
@@ -51,7 +53,21 @@ public sealed class AilmentViewModel : ViewModelBase
 
     public bool IsTimerActive { get => _isTimerActive; private set => Set(ref _isTimerActive, value); }
 
+    /// <summary>The ring is drawn: something about it changed recently, and it is not on the blacklist</summary>
     public bool IsShown { get => _isShown; private set => Set(ref _isShown, value); }
+
+    /// <summary>On the user's list of ailments to leave out, see <see cref="AilmentBlacklist"/></summary>
+    public bool IsBlacklisted => _isBlacklisted;
+
+    public void SetBlacklisted(bool blacklisted)
+    {
+        if (_isBlacklisted == blacklisted)
+            return;
+
+        _isBlacklisted = blacklisted;
+        Raise(nameof(IsBlacklisted));
+        UpdateVisibility();
+    }
 
     public AilmentViewModel(IMonsterAilment source)
     {
@@ -140,6 +156,9 @@ public sealed class AilmentViewModel : ViewModelBase
             Text = _maxBuildUp > 0 && _buildUp > 0 ? $"{Math.Clamp(_buildUp / _maxBuildUp, 0, 1) * 100:0}%" : string.Empty;
     }
 
-    private void UpdateVisibility() =>
-        IsShown = _lastChange != 0 && (IsTimerActive || Stopwatch.GetElapsedTime(_lastChange) < HideAfter);
+    private void UpdateVisibility()
+    {
+        _isActive = _lastChange != 0 && (IsTimerActive || Stopwatch.GetElapsedTime(_lastChange) < HideAfter);
+        IsShown = _isActive && !_isBlacklisted;
+    }
 }

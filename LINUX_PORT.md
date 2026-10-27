@@ -48,6 +48,21 @@ build prints a blocked-connection warning for Avalonia build telemetry; set `AVA
 
 Widgets today: monster health (name, bar, numbers, enrage badge, stamina, weaknesses, ailments; one card per monster), quest timer and damage meter.
 
+### Hiding ailments
+
+The monster card draws a ring for every ailment the game reports, and some are noise: the game has a flayer ailment per
+hunter in the party. Settings > Monsters > Hidden ailments lists what is left out, and `overlay.json` holds the same
+list under `Monsters.HiddenAilments`:
+
+```json
+"HiddenAilments": ["AILMENT_FLAYER_*", "Convert Element"]
+```
+
+Each entry is matched, ignoring case, against an ailment's id (`AILMENT_FLAYER_PL1`) and its display name
+(`Flayer PL1`); `*` matches any run of characters and `?` one. The default is `AILMENT_FLAYER_*`. A file without the key
+gets the default, an empty list `[]` hides nothing. Changes apply to the cards at once. Ids the game reports show up in
+the suggestions of the settings box. The hunt logs are not filtered: they record every ailment.
+
 ## Logs
 
 Both the headless host and the overlay write log files (turn off with `--no-logs`) to `$HUNTERPIE_LOG_DIR`, else

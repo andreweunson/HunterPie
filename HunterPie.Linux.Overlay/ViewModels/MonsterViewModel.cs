@@ -35,6 +35,7 @@ public sealed class MonsterViewModel : ViewModelBase, IDisposable
     private double _staminaPercent;
     private string _staminaText = string.Empty;
     private bool _hasStamina;
+    private int _blacklistVersion = -1;
     private bool _isExhausted;
     private bool _lastExhausted;
 
@@ -169,16 +170,29 @@ public sealed class MonsterViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>Used by the demo feed, where there is no game to report ailments</summary>
-    public void AddAilment(AilmentViewModel ailment) => Ailments.Add(ailment);
+    public void AddAilment(AilmentViewModel ailment)
+    {
+        ailment.SetBlacklisted(Options.Blacklist.IsHidden(ailment.Id, ailment.Name));
+        Ailments.Add(ailment);
+    }
 
     public void RefreshAilments()
     {
         bool any = false;
 
+        // The blacklist is edited rarely; only look at it again when it was
+        int version = Options.Blacklist.Version;
+        bool listChanged = version != _blacklistVersion;
+        _blacklistVersion = version;
+
         // Index loop on purpose: no enumerator allocation on a 10 Hz path
         for (int i = 0; i < Ailments.Count; i++)
         {
             AilmentViewModel ailment = Ailments[i];
+
+            if (listChanged)
+                ailment.SetBlacklisted(Options.Blacklist.IsHidden(ailment.Id, ailment.Name));
+
             ailment.Refresh();
             any |= ailment.IsShown;
         }
@@ -206,7 +220,10 @@ public sealed class MonsterViewModel : ViewModelBase, IDisposable
                 return;
         }
 
-        Ailments.Add(new AilmentViewModel(ailment));
+        var viewModel = new AilmentViewModel(ailment);
+        Options.Blacklist.Learn(viewModel.Id);
+        viewModel.SetBlacklisted(Options.Blacklist.IsHidden(viewModel.Id, viewModel.Name));
+        Ailments.Add(viewModel);
     }
 
     private static IMonsterAilment[] SnapshotAilments(IMonster monster)

@@ -58,6 +58,34 @@ public partial class SettingsWindow : Window
             viewModel.Layout.Screen = MonitorBox.SelectedIndex;
     }
 
+    private void OnAddHiddenAilment(object? sender, RoutedEventArgs e) => AddHiddenAilment();
+
+    private void OnHiddenAilmentKeyDown(object? sender, Avalonia.Input.KeyEventArgs e)
+    {
+        if (e.Key != Avalonia.Input.Key.Enter)
+            return;
+
+        AddHiddenAilment();
+        e.Handled = true;
+    }
+
+    private void AddHiddenAilment()
+    {
+        if (ViewModel is not { } viewModel)
+            return;
+
+        viewModel.MonsterOptions.Blacklist.Add(HiddenAilmentBox.Text);
+        HiddenAilmentBox.Text = string.Empty;
+    }
+
+    private void OnRemoveHiddenAilment(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is { } viewModel && (sender as Button)?.Tag is string pattern)
+            viewModel.MonsterOptions.Blacklist.Remove(pattern);
+    }
+
+    private void OnResetHiddenAilments(object? sender, RoutedEventArgs e) => ViewModel?.MonsterOptions.Blacklist.ResetToDefaults();
+
     private string? _logDirectory;
 
     private void ShowLogLocation()

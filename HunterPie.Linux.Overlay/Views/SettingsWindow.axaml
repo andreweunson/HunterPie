@@ -93,6 +93,30 @@
                             <CheckBox Content="Stamina bar" IsChecked="{Binding MonsterOptions.ShowStamina}" />
                             <CheckBox Content="Weaknesses" IsChecked="{Binding MonsterOptions.ShowWeaknesses}" />
                             <CheckBox Content="Ailments" IsChecked="{Binding MonsterOptions.ShowAilments}" />
+                            <Expander Header="Hidden ailments" Margin="0,2,0,0" IsEnabled="{Binding MonsterOptions.ShowAilments}">
+                                <StackPanel Spacing="6" Margin="0,6,0,0">
+                                    <TextBlock TextWrapping="Wrap" Opacity="0.7" FontSize="12"
+                                               Text="These ailments never get a ring. Type an id or a name; * matches any text, so AILMENT_FLAYER_* hides all four flayer rings." />
+                                    <ItemsControl ItemsSource="{Binding MonsterOptions.Blacklist.Patterns}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="x:String">
+                                                <DockPanel Margin="0,0,0,2">
+                                                    <Button DockPanel.Dock="Right" Content="Show again" Padding="8,2" Click="OnRemoveHiddenAilment" Tag="{Binding}" />
+                                                    <TextBlock Text="{Binding}" FontFamily="monospace" VerticalAlignment="Center" />
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                        <AutoCompleteBox x:Name="HiddenAilmentBox" Watermark="Ailment id or name"
+                                                         ItemsSource="{Binding MonsterOptions.Blacklist.Known}"
+                                                         FilterMode="Contains" MinimumPrefixLength="0"
+                                                         KeyDown="OnHiddenAilmentKeyDown" />
+                                        <Button Grid.Column="1" Content="Hide" Click="OnAddHiddenAilment" />
+                                    </Grid>
+                                    <Button Content="Restore default" HorizontalAlignment="Left" Click="OnResetHiddenAilments" />
+                                </StackPanel>
+                            </Expander>
                         </StackPanel>
                     </StackPanel>
                 </Border>

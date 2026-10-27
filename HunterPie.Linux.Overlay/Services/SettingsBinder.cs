@@ -24,6 +24,16 @@ internal static class SettingsBinder
             settings.Save();
         };
 
+        monsters.Blacklist.Patterns.Clear();
+        foreach (string pattern in settings.Monsters.HiddenAilments)
+            monsters.Blacklist.Add(pattern);
+
+        monsters.Blacklist.Changed += (_, _) =>
+        {
+            settings.Monsters.HiddenAilments = [.. monsters.Blacklist.Patterns];
+            settings.Save();
+        };
+
         DamageViewModel damage = viewModel.Damage;
         damage.ShowGraph = settings.Damage.ShowGraph;
         damage.ShowStats = settings.Damage.ShowStats;
