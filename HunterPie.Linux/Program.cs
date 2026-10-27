@@ -50,6 +50,13 @@ internal static class Program
             return MapFinder.Run();
         }
 
+        if (options.FindCrypto)
+        {
+            await HostBootstrapper.InitializeAsync(options with { WriteLogs = false });
+
+            return MapFinder.RunCrypto();
+        }
+
         using var shutdown = new CancellationTokenSource();
 
         Console.CancelKeyPress += (_, e) =>

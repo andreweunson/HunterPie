@@ -6,7 +6,8 @@ internal sealed record HostOptions(
     bool Verbose,
     TimeSpan? RunFor,
     bool WriteLogs = true,
-    bool FindMap = false
+    bool FindMap = false,
+    bool FindCrypto = false
 )
 {
     public const string Usage = """
@@ -18,6 +19,8 @@ internal sealed record HostOptions(
           --find-map      For a Monster Hunter Wilds version that has no address map yet: work out the map from the
                           newest older one by measuring how far the game's globals moved, then exit. Run it with the
                           game open and your character loaded into the world
+          --find-crypto   Check that the encryption key in the Wilds map decrypts your character's stats to believable
+                          numbers and, if not, look for where the key moved to. Game open, character loaded
           --verbose       Also print debug logs from HunterPie
           --run-for <s>   Exit by itself after <s> seconds (useful for scripts and tests)
           --no-logs       Do not write log files (default: a session log, and one file per hunt with a summary,
@@ -30,7 +33,7 @@ internal sealed record HostOptions(
 
     public static HostOptions Parse(string[] args)
     {
-        bool help = false, doctor = false, verbose = false, noLogs = false, findMap = false;
+        bool help = false, doctor = false, verbose = false, noLogs = false, findMap = false, findCrypto = false;
         TimeSpan? runFor = null;
 
         for (int i = 0; i < args.Length; i++)
@@ -45,6 +48,9 @@ internal sealed record HostOptions(
                     break;
                 case "--find-map":
                     findMap = true;
+                    break;
+                case "--find-crypto":
+                    findCrypto = true;
                     break;
                 case "--verbose":
                     verbose = true;
@@ -63,6 +69,6 @@ internal sealed record HostOptions(
             }
         }
 
-        return new HostOptions(help, doctor, verbose, runFor, !noLogs, findMap);
+        return new HostOptions(help, doctor, verbose, runFor, !noLogs, findMap, findCrypto);
     }
 }

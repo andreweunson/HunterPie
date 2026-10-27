@@ -102,8 +102,22 @@ ahead of all others, and never over an existing file. Otherwise it says why and 
 when a patch moved the globals by different amounts (the x.y.0.0 releases did). Those need a map made from the
 executable itself.
 
-After a map is written, check that the monster and party data look right, then copy the file to `HunterPie/Address/` so
-it survives a rebuild. `Encryption::Round` and `Encryption::Key` are shifted with the rest but cannot be verified this way.
+`Encryption::Round` and `Encryption::Key` are shifted with the rest but cannot be verified that way. Wilds hides its
+floats (monster health, attack, affinity) behind AES, and a wrong key shows up as nonsense health such as `0/0 HP` or
+`2.4e37`. `--find-crypto` checks them, again with the game running and the character loaded:
+
+```bash
+./HunterPie.Linux --find-crypto
+```
+
+It decrypts the player's affinity and attack, and the health of any monsters in the area, with the key and round in the
+map. If the numbers are believable (affinity a short decimal, monster maximum health a whole number) it says so and the
+problem is elsewhere. If not, it scans +-16 MB around the old position for the 16 byte round value followed by the key,
+first at page-aligned positions and then at every 16 bytes, and rewrites the two lines of the map when one pair clearly
+stands out. Only 4 of the 16 decrypted bytes matter, so a lone player's values are a weak test; with a monster in the
+area it is decisive.
+
+After the map works, copy the file to `HunterPie/Address/` so it survives a rebuild.
 
 ## How it works
 - `HunterPie.Platforms/Linux/` implements the platform interfaces: process discovery (`/proc/*/cmdline` + the PE image
