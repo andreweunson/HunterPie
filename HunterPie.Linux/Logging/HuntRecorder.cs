@@ -135,8 +135,15 @@ internal sealed class HuntRecorder : IDisposable
 
             // The last reading before the quest object is torn down is the one that counts
             IQuest finished = e.Quest ?? _quest!;
-            _carts = Math.Max(_carts, finished.Deaths);
             _maxCarts = finished.MaxDeaths > 0 ? finished.MaxDeaths : _maxCarts;
+
+            // The cart that fails the quest can be counted in the same breath as the quest ending, and its event
+            // may not have reached this recorder yet
+            if (finished.Deaths > _carts)
+            {
+                _carts = finished.Deaths;
+                Event($"Party fainted: {_carts} of {_maxCarts} carts used");
+            }
             finished.OnDeathCounterChange -= OnCartCounterChange;
             _quest!.OnDeathCounterChange -= OnCartCounterChange;
 

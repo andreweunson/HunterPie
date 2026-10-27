@@ -249,6 +249,14 @@ public sealed class MHWildsGame : CommonGame
 
         if (_quest is not null && isOver)
         {
+            // Losing the last cart is what ends the quest, so this scan is often the first to see that death, and
+            // returning below skips the update that would have counted it
+            MHWildsEncryptedInteger finalDeaths = await Memory.DerefAsync<MHWildsEncryptedInteger>(
+                address: AddressMap.GetAbsolute("Game::QuestManager"),
+                offsets: AddressMap.GetOffsets("Quest::DieCount")
+            );
+            _quest.UpdateDeaths((int)finalDeaths.Decode());
+
             _stopwatch.Restart();
 
             this.Dispatch(

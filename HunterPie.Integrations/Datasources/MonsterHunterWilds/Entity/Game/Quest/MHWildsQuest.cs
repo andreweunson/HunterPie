@@ -103,6 +103,16 @@ public sealed class MHWildsQuest(
         remove => _onTimeLeftChange.Unhook(value);
     }
 
+    /// <summary>
+    /// Brings the death counter up to a reading taken after the last full update. Only ever raises it: once the quest is
+    /// over the game may already have cleared the value.
+    /// </summary>
+    public void UpdateDeaths(int deaths)
+    {
+        if (deaths > Deaths)
+            Deaths = deaths;
+    }
+
     public void Update(UpdateQuest data)
     {
         MaxDeaths = (int)data.Information.MaxDeaths.Decode();
