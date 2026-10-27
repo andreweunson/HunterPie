@@ -102,6 +102,9 @@ internal sealed class HuntRecorder : IDisposable
             _maxCarts = quest.MaxDeaths;
             quest.OnDeathCounterChange += OnCartCounterChange;
 
+            // Monsters that are still around (spawned while loading in) belong to this hunt, ones already gone do not
+            ForgetMonsters(onlyDespawned: true);
+
             string name = QuestName(quest);
             string[] header =
             [
@@ -149,6 +152,9 @@ internal sealed class HuntRecorder : IDisposable
 
             _sink.EndHunt(BuildSummary(finished, e.Status.ToString(), e.TimeElapsed));
             _quest = null;
+
+            // The next hunt starts with an empty board; keeping these would list this hunt's monsters again
+            ForgetMonsters(onlyDespawned: false);
             _sink.SetBuffering(false);
         }
     }
@@ -310,6 +316,18 @@ internal sealed class HuntRecorder : IDisposable
 
             record.Ailments[name] = ailment.Counter;
             Event($"{record.Name}: {name} inflicted (#{ailment.Counter})");
+        }
+    }
+
+    private void ForgetMonsters(bool onlyDespawned)
+    {
+        foreach ((IMonster monster, MonsterRecord record) in _monsters.ToArray())
+        {
+            if (onlyDespawned && !record.Despawned)
+                continue;
+
+            Unsubscribe(monster);
+            _monsters.Remove(monster);
         }
     }
 
