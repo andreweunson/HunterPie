@@ -198,6 +198,13 @@ internal sealed class HuntRecorder : IDisposable
                 return;
 
             int percent = (int)Math.Round(monster.Health / monster.MaxHealth * 100);
+
+            // The game rescales a monster's health to the party size, so the maximum can change while the hunt is
+            // already running (joining a link party, someone leaving). Say so, otherwise the next percentage looks odd
+            float previousMax = record.MaxHealth;
+            if (previousMax > 0 && Math.Abs(previousMax - monster.MaxHealth) >= 1)
+                Event($"{record.Name}: max HP rescaled {previousMax:0} -> {monster.MaxHealth:0} (x{monster.MaxHealth / previousMax:0.00}), current {monster.Health:0}");
+
             record.ObserveHealth(monster.Health, monster.MaxHealth);
 
             // Whole-percent steps, like the console, so a hunt is a few hundred lines rather than thousands
@@ -583,6 +590,7 @@ internal sealed class HuntRecorder : IDisposable
         public IMonster Monster { get; } = monster;
         public string Name => Monster.Name.Trim();
         public int LastLoggedPercent { get; set; } = -1;
+        public float MaxHealth => _maxHealth;
         public string Outcome { get; set; } = "alive";
         public bool Despawned { get; set; }
         public int EnrageCount { get; private set; }
