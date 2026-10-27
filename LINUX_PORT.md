@@ -14,7 +14,7 @@ cd HunterPie.Linux/bin/Release/net10.0
 ./HunterPie.Linux                                  # attach and print events, Ctrl+C to quit
 ```
 
-Options: `--verbose` (debug logs), `--run-for <seconds>`, `--help`.
+Options: `--verbose` (debug logs), `--run-for <seconds>`, `--find-map` (see below), `--help`.
 
 ### Required once: allow reading the game's memory
 Linux blocks reading other processes by default (Yama `ptrace_scope=1`). Either
@@ -84,6 +84,26 @@ cannot be written turns file logging off with one warning instead of affecting t
 
 HunterPie's own log level setting drops messages before any writer sees them, so the host keeps it at Debug and filters
 the console itself; the level in `config.json` is no longer what decides what the console shows.
+
+## When the game updates and `--doctor` says the map is missing
+
+The game only attaches when `Address/MonsterHunterWilds.<version>.map` exists for its exact file version. Between two
+small patches (the last digit of the version) the map's 14 `Address` lines have always moved by one shared,
+page-aligned amount, while its `Offset` lines stayed the same. `--find-map` measures that amount:
+
+```bash
+./HunterPie.Linux --find-map     # game running, character loaded into the world (not the title screen)
+```
+
+It starts from the newest older map, tries every shift of 0x1000 within +-8 MB and keeps the one where the manager
+globals (`QuestManager`, `PlayerManager` and so on) hold readable pointers and the offset chains hanging off them lead
+to readable memory. The map is written to the `Address` folder next to the executable only when one shift is clearly
+ahead of all others, and never over an existing file. Otherwise it says why and writes nothing, which is what happens
+when a patch moved the globals by different amounts (the x.y.0.0 releases did). Those need a map made from the
+executable itself.
+
+After a map is written, check that the monster and party data look right, then copy the file to `HunterPie/Address/` so
+it survives a rebuild. `Encryption::Round` and `Encryption::Key` are shifted with the rest but cannot be verified this way.
 
 ## How it works
 - `HunterPie.Platforms/Linux/` implements the platform interfaces: process discovery (`/proc/*/cmdline` + the PE image

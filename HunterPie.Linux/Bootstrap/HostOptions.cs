@@ -5,7 +5,8 @@ internal sealed record HostOptions(
     bool Doctor,
     bool Verbose,
     TimeSpan? RunFor,
-    bool WriteLogs = true
+    bool WriteLogs = true,
+    bool FindMap = false
 )
 {
     public const string Usage = """
@@ -14,6 +15,9 @@ internal sealed record HostOptions(
         Usage: HunterPie.Linux [options]
 
           --doctor        Check the environment (ptrace, xdotool, address maps) and look for a running game, then exit
+          --find-map      For a Monster Hunter Wilds version that has no address map yet: work out the map from the
+                          newest older one by measuring how far the game's globals moved, then exit. Run it with the
+                          game open and your character loaded into the world
           --verbose       Also print debug logs from HunterPie
           --run-for <s>   Exit by itself after <s> seconds (useful for scripts and tests)
           --no-logs       Do not write log files (default: a session log, and one file per hunt with a summary,
@@ -26,7 +30,7 @@ internal sealed record HostOptions(
 
     public static HostOptions Parse(string[] args)
     {
-        bool help = false, doctor = false, verbose = false, noLogs = false;
+        bool help = false, doctor = false, verbose = false, noLogs = false, findMap = false;
         TimeSpan? runFor = null;
 
         for (int i = 0; i < args.Length; i++)
@@ -38,6 +42,9 @@ internal sealed record HostOptions(
                     break;
                 case "--doctor":
                     doctor = true;
+                    break;
+                case "--find-map":
+                    findMap = true;
                     break;
                 case "--verbose":
                     verbose = true;
@@ -56,6 +63,6 @@ internal sealed record HostOptions(
             }
         }
 
-        return new HostOptions(help, doctor, verbose, runFor, !noLogs);
+        return new HostOptions(help, doctor, verbose, runFor, !noLogs, findMap);
     }
 }

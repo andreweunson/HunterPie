@@ -43,6 +43,13 @@ internal static class Program
             return Doctor.Run();
         }
 
+        if (options.FindMap)
+        {
+            await HostBootstrapper.InitializeAsync(options with { WriteLogs = false });
+
+            return MapFinder.Run();
+        }
+
         using var shutdown = new CancellationTokenSource();
 
         Console.CancelKeyPress += (_, e) =>
