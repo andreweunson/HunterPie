@@ -22,8 +22,36 @@ public partial class SettingsWindow : Window
         Opened += (_, _) =>
         {
             FillMonitors();
+            FillGraphModes();
             ShowLogLocation();
         };
+    }
+
+    private static readonly (GraphMode Mode, string Text)[] GraphModes =
+    [
+        (GraphMode.DamagePerSecond, "Damage per second (since joining)"),
+        (GraphMode.MovingAverage, "Moving average damage per second"),
+        (GraphMode.TotalDamage, "Total damage")
+    ];
+
+    private bool _fillingGraphModes;
+
+    private void FillGraphModes()
+    {
+        _fillingGraphModes = true;
+        GraphModeBox.Items.Clear();
+
+        foreach ((_, string text) in GraphModes)
+            GraphModeBox.Items.Add(text);
+
+        GraphModeBox.SelectedIndex = ViewModel is { } viewModel ? Array.FindIndex(GraphModes, it => it.Mode == viewModel.Damage.GraphMode) : 0;
+        _fillingGraphModes = false;
+    }
+
+    private void OnGraphModeChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (!_fillingGraphModes && ViewModel is { } viewModel && GraphModeBox.SelectedIndex >= 0)
+            viewModel.Damage.GraphMode = GraphModes[GraphModeBox.SelectedIndex].Mode;
     }
 
     private bool _fillingMonitors;

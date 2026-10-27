@@ -135,6 +135,15 @@
                         <StackPanel Margin="20,4,0,0" Spacing="4" IsEnabled="{Binding Layout.DamageEnabled}">
                             <CheckBox Content="DPS graph" IsChecked="{Binding Damage.ShowGraph}" />
                             <CheckBox Content="Player stats" IsChecked="{Binding Damage.ShowStats}" />
+                            <Grid ColumnDefinitions="70,*" Margin="0,4,0,0" IsEnabled="{Binding Damage.ShowGraph}">
+                                <TextBlock Text="Graph" VerticalAlignment="Center" Opacity="0.7" />
+                                <ComboBox Name="GraphModeBox" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnGraphModeChanged" />
+                            </Grid>
+                            <Grid ColumnDefinitions="70,*,50" IsEnabled="{Binding Damage.ShowGraph}" IsVisible="{Binding Damage.IsMovingAverage}">
+                                <TextBlock Text="Window" VerticalAlignment="Center" Opacity="0.7" />
+                                <Slider Grid.Column="1" Minimum="5" Maximum="60" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding Damage.WindowSeconds}" />
+                                <TextBlock Grid.Column="2" Text="{Binding Damage.WindowSeconds, StringFormat='{}{0} s'}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                            </Grid>
                         </StackPanel>
                     </StackPanel>
                 </Border>

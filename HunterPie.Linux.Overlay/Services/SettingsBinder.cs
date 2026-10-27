@@ -37,13 +37,18 @@ internal static class SettingsBinder
         DamageViewModel damage = viewModel.Damage;
         damage.ShowGraph = settings.Damage.ShowGraph;
         damage.ShowStats = settings.Damage.ShowStats;
+        damage.GraphMode = settings.Damage.GraphMode;
+        damage.WindowSeconds = settings.Damage.GraphWindowSeconds;
         damage.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName is not (nameof(DamageViewModel.ShowGraph) or nameof(DamageViewModel.ShowStats)))
+            if (e.PropertyName is not (nameof(DamageViewModel.ShowGraph) or nameof(DamageViewModel.ShowStats)
+                or nameof(DamageViewModel.GraphMode) or nameof(DamageViewModel.WindowSeconds)))
                 return;
 
             settings.Damage.ShowGraph = damage.ShowGraph;
             settings.Damage.ShowStats = damage.ShowStats;
+            settings.Damage.GraphMode = damage.GraphMode;
+            settings.Damage.GraphWindowSeconds = damage.WindowSeconds;
             settings.Save();
         };
     }

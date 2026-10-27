@@ -36,8 +36,92 @@ public sealed class PlayerDamageViewModel : ViewModelBase
 
     public IPartyMember? Source { get; }
 
-    /// <summary>DPS samples for the graph, NaN where this member had not joined yet</summary>
-    public float[] History { get; } = CreateHistory();
+    // One history per graph mode, so switching modes in the settings keeps what was already recorded
+    private readonly float[] _perSecondHistory = CreateHistory();
+    private readonly float[] _rollingHistory = CreateHistory();
+    private readonly float[] _totalHistory = CreateHistory();
+
+    // Damage at the start of each recent second of quest time (and when exactly that was), for the moving average
+    private const int RingSize = 128;
+    private readonly int[] _ringDamage = new int[RingSize];
+    private readonly float[] _ringTime = new float[RingSize];
+    private int _ringStart = -1;
+    private int _ringSecond = -1;
+
+    /// <summary>The longest moving average window the ring can answer</summary>
+    public const int MaxWindowSeconds = 60;
+
+    /// <summary>Which of the histories <see cref="History"/> returns</summary>
+    public GraphMode Mode { get; set; }
+
+    /// <summary>Samples for the graph in the current mode, NaN where this member had not joined yet</summary>
+    public float[] History => Mode switch
+    {
+        GraphMode.MovingAverage => _rollingHistory,
+        GraphMode.TotalDamage => _totalHistory,
+        _ => _perSecondHistory
+    };
+
+    public float[] PerSecondHistory => _perSecondHistory;
+
+    public float[] RollingHistory => _rollingHistory;
+
+    public float[] TotalHistory => _totalHistory;
+
+    /// <summary>
+    /// Remembers the damage at the first look in each second of quest time. A refresh that skipped seconds fills them
+    /// with the current reading.
+    /// </summary>
+    public void RecordSecond(double elapsed, int damage)
+    {
+        int second = (int)elapsed;
+
+        if (second <= _ringSecond)
+            return;
+
+        if (_ringStart < 0)
+            _ringStart = second;
+
+        // Nothing older than the ring holds can be asked for
+        int from = Math.Max(Math.Max(_ringSecond + 1, _ringStart), second - RingSize + 1);
+
+        for (int s = from; s <= second; s++)
+        {
+            _ringDamage[s % RingSize] = damage;
+            _ringTime[s % RingSize] = (float)elapsed;
+        }
+
+        _ringSecond = second;
+    }
+
+    /// <summary>
+    /// Damage per second over the last <paramref name="window"/> seconds. Before that much time has passed since the
+    /// hunter was first seen it is the average since then, so the line starts where the plain DPS does.
+    /// </summary>
+    public double MovingAverage(double elapsed, int damage, int window)
+    {
+        window = Math.Clamp(window, 1, MaxWindowSeconds);
+        int past = (int)elapsed - window;
+
+        int pastDamage;
+        double pastTime;
+
+        if (_ringStart >= 0 && past >= _ringStart && past <= _ringSecond)
+        {
+            pastDamage = _ringDamage[past % RingSize];
+            pastTime = _ringTime[past % RingSize];
+        }
+        else
+        {
+            pastDamage = BaselineDamage;
+            pastTime = JoinedAt;
+        }
+
+        return Math.Max(damage - pastDamage, 0) / Math.Max(1, elapsed - pastTime);
+    }
+
+    /// <summary>Throws away the moving average samples, which were made with a different window</summary>
+    public void ClearMovingAverage() => Array.Fill(_rollingHistory, float.NaN);
 
     public double Dps { get; private set; }
 

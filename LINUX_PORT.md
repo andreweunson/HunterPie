@@ -211,8 +211,13 @@ italic and grey. Each row has the hunter's weapon icon (the vector art from `Hun
 copied into `Assets/WeaponIcons.axaml`), and, when the host has read it, a stats line with attack, elemental attack
 and affinity.
 
-Under the rows is a DPS graph with one line per member (yours is thicker). It plots the same DPS number the rows
-show, sampled once per second of quest time. The history has a fixed size: when it fills up every second sample is
+Under the rows is a graph with one line per member (yours is thicker), sampled once per second of quest time. What it
+plots is set under Graph in the Damage meter section of the settings window, the same three choices as the Windows
+client's damage plot strategy: *Damage per second* (the number the rows show, damage divided by the time since the
+hunter joined), *Moving average damage per second* (damage dealt in the last 5 to 60 seconds, 10 by default, divided
+by that time; before that much time has passed it equals the plain DPS) and *Total damage*. The three histories are
+recorded side by side, so switching shows what was already recorded; changing the moving average window starts that
+line afresh. Saved as `GraphMode` and `GraphWindowSeconds` in `overlay.json`. The history has a fixed size: when it fills up every second sample is
 dropped and the sampling interval doubles, so a whole quest always fits and drawing it never gets more expensive.
 
 The Damage meter section of the settings window turns the graph and the stats line on or off; the choice is saved in

@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using HunterPie.Linux.Overlay.ViewModels;
+
 namespace HunterPie.Linux.Overlay.Services;
 
 public class WidgetPlacement
@@ -44,11 +46,30 @@ public sealed class MonsterPlacement : WidgetPlacement
     }
 }
 
+/// <summary>Reads the mode by name; a name this version does not know means the default rather than a lost settings file</summary>
+internal sealed class GraphModeConverter : JsonConverter<GraphMode>
+{
+    public override GraphMode Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+        reader.TokenType == JsonTokenType.String && Enum.TryParse(reader.GetString(), true, out GraphMode mode) && Enum.IsDefined(mode)
+            ? mode
+            : GraphMode.DamagePerSecond;
+
+    public override void Write(Utf8JsonWriter writer, GraphMode value, JsonSerializerOptions options) =>
+        writer.WriteStringValue(value.ToString());
+}
+
 /// <summary>The damage widget's position plus what it shows</summary>
 public sealed class DamagePlacement : WidgetPlacement
 {
     public bool ShowGraph { get; set; } = true;
     public bool ShowStats { get; set; } = true;
+
+    /// <summary>What the graph plots: DamagePerSecond, MovingAverage or TotalDamage</summary>
+    [JsonConverter(typeof(GraphModeConverter))]
+    public GraphMode GraphMode { get; set; } = GraphMode.DamagePerSecond;
+
+    /// <summary>Seconds the moving average looks back</summary>
+    public int GraphWindowSeconds { get; set; } = DamageViewModel.DefaultWindowSeconds;
 
     public DamagePlacement()
     {
@@ -139,6 +160,10 @@ public sealed class OverlaySettings
         settings.Monsters.HiddenAilments = [.. (settings.Monsters.HiddenAilments ?? [.. AilmentBlacklist.Defaults])
             .Where(it => !string.IsNullOrWhiteSpace(it))
             .Select(it => it.Trim())];
+
+        settings.Damage.GraphWindowSeconds = Math.Clamp(settings.Damage.GraphWindowSeconds, DamageViewModel.MinWindowSeconds, PlayerDamageViewModel.MaxWindowSeconds);
+        if (!Enum.IsDefined(settings.Damage.GraphMode))
+            settings.Damage.GraphMode = GraphMode.DamagePerSecond;
 
         settings.Screen = Math.Max(0, settings.Screen);
 
