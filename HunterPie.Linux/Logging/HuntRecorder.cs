@@ -97,7 +97,10 @@ internal sealed class HuntRecorder : IDisposable
         }
     }
 
-    private void OnQuestStart(object? sender, IQuest quest)
+    private void OnQuestStart(object? sender, IQuest quest) =>
+        Hooked(() => OnQuestStartLocked(sender, quest));
+
+    private void OnQuestStartLocked(object? sender, IQuest quest)
     {
         lock (_lock)
         {
@@ -105,7 +108,7 @@ internal sealed class HuntRecorder : IDisposable
             _questStartedAt = DateTime.Now;
             _carts = quest.Deaths;
             _maxCarts = quest.MaxDeaths;
-            quest.OnDeathCounterChange += OnCartCounterChange;
+            Later(() => quest.OnDeathCounterChange += OnCartCounterChange);
 
             // Monsters that are still around (spawned while loading in) belong to this hunt, ones already gone do not
             ForgetMonsters(onlyDespawned: true);
@@ -154,7 +157,10 @@ internal sealed class HuntRecorder : IDisposable
         }
     }
 
-    private void OnQuestEnd(object? sender, QuestEndEventArgs e)
+    private void OnQuestEnd(object? sender, QuestEndEventArgs e) =>
+        Hooked(() => OnQuestEndLocked(sender, e));
+
+    private void OnQuestEndLocked(object? sender, QuestEndEventArgs e)
     {
         lock (_lock)
         {
@@ -175,8 +181,12 @@ internal sealed class HuntRecorder : IDisposable
                 _carts = finished.Deaths;
                 Event($"Party fainted: {_carts} of {_maxCarts} carts used");
             }
-            finished.OnDeathCounterChange -= OnCartCounterChange;
-            _quest!.OnDeathCounterChange -= OnCartCounterChange;
+            IQuest tracked = _quest!;
+            Later(() =>
+            {
+                finished.OnDeathCounterChange -= OnCartCounterChange;
+                tracked.OnDeathCounterChange -= OnCartCounterChange;
+            });
 
             // The game clears skills when the player leaves the hunting zone, after this point
             _skills.CloseAll(e.TimeElapsed.TotalSeconds);
@@ -194,7 +204,10 @@ internal sealed class HuntRecorder : IDisposable
 
     #region Monsters
 
-    private void OnMonsterSpawn(object? sender, IMonster monster)
+    private void OnMonsterSpawn(object? sender, IMonster monster) =>
+        Hooked(() => OnMonsterSpawnLocked(sender, monster));
+
+    private void OnMonsterSpawnLocked(object? sender, IMonster monster)
     {
         lock (_lock)
         {
@@ -204,12 +217,15 @@ internal sealed class HuntRecorder : IDisposable
             var record = new MonsterRecord(monster);
             _monsters[monster] = record;
 
-            monster.OnLoad += OnMonsterLoad;
-            monster.OnHealthChange += OnMonsterHealthChange;
-            monster.OnDeath += OnMonsterDeath;
-            monster.OnCapture += OnMonsterCapture;
-            monster.OnEnrageStateChange += OnMonsterEnrageChange;
-            monster.OnNewAilmentFound += OnNewAilmentFound;
+            Later(() =>
+            {
+                monster.OnLoad += OnMonsterLoad;
+                monster.OnHealthChange += OnMonsterHealthChange;
+                monster.OnDeath += OnMonsterDeath;
+                monster.OnCapture += OnMonsterCapture;
+                monster.OnEnrageStateChange += OnMonsterEnrageChange;
+                monster.OnNewAilmentFound += OnNewAilmentFound;
+            });
 
             foreach (IMonsterAilment ailment in SnapshotAilments(monster))
                 Watch(record, ailment);
@@ -295,7 +311,10 @@ internal sealed class HuntRecorder : IDisposable
         }
     }
 
-    private void OnMonsterDespawn(object? sender, IMonster monster)
+    private void OnMonsterDespawn(object? sender, IMonster monster) =>
+        Hooked(() => OnMonsterDespawnLocked(sender, monster));
+
+    private void OnMonsterDespawnLocked(object? sender, IMonster monster)
     {
         lock (_lock)
         {
@@ -310,7 +329,10 @@ internal sealed class HuntRecorder : IDisposable
         }
     }
 
-    private void OnNewAilmentFound(object? sender, IMonsterAilment ailment)
+    private void OnNewAilmentFound(object? sender, IMonsterAilment ailment) =>
+        Hooked(() => OnNewAilmentFoundLocked(sender, ailment));
+
+    private void OnNewAilmentFoundLocked(object? sender, IMonsterAilment ailment)
     {
         if (sender is not IMonster monster)
             return;
@@ -328,7 +350,7 @@ internal sealed class HuntRecorder : IDisposable
         if (!AilmentNames.IsDisplayable(ailment) || AilmentNames.IsFlinchGauge(ailment) || !_ailmentOwners.TryAdd(ailment, record))
             return;
 
-        ailment.OnCounterUpdate += OnAilmentCounter;
+        Later(() => ailment.OnCounterUpdate += OnAilmentCounter);
         record.Ailments.TryAdd(AilmentNames.NameFor(ailment), 0);
     }
 
@@ -364,21 +386,60 @@ internal sealed class HuntRecorder : IDisposable
 
     private void Unsubscribe(IMonster monster)
     {
-        monster.OnLoad -= OnMonsterLoad;
-        monster.OnHealthChange -= OnMonsterHealthChange;
-        monster.OnDeath -= OnMonsterDeath;
-        monster.OnCapture -= OnMonsterCapture;
-        monster.OnEnrageStateChange -= OnMonsterEnrageChange;
-        monster.OnNewAilmentFound -= OnNewAilmentFound;
+        var owned = new List<IMonsterAilment>();
 
-        if (!_monsters.TryGetValue(monster, out MonsterRecord? record))
-            return;
+        if (_monsters.TryGetValue(monster, out MonsterRecord? record))
+            foreach (IMonsterAilment ailment in _ailmentOwners.Where(it => ReferenceEquals(it.Value, record)).Select(it => it.Key).ToArray())
+            {
+                owned.Add(ailment);
+                _ailmentOwners.Remove(ailment);
+            }
 
-        foreach (IMonsterAilment ailment in _ailmentOwners.Where(it => ReferenceEquals(it.Value, record)).Select(it => it.Key).ToArray())
+        Later(() =>
         {
-            ailment.OnCounterUpdate -= OnAilmentCounter;
-            _ailmentOwners.Remove(ailment);
+            monster.OnLoad -= OnMonsterLoad;
+            monster.OnHealthChange -= OnMonsterHealthChange;
+            monster.OnDeath -= OnMonsterDeath;
+            monster.OnCapture -= OnMonsterCapture;
+            monster.OnEnrageStateChange -= OnMonsterEnrageChange;
+            monster.OnNewAilmentFound -= OnNewAilmentFound;
+
+            foreach (IMonsterAilment ailment in owned)
+                ailment.OnCounterUpdate -= OnAilmentCounter;
+        });
+    }
+
+    // Subscribing to or unsubscribing from a game event takes that event's internal lock, and the event holds it while
+    // it runs our handlers, which take _lock. Doing either while holding _lock can deadlock two scan threads (a monster
+    // dying while it despawns), so they are queued here and run once _lock is released.
+    private readonly List<Action> _pendingHooks = new();
+
+    private void Later(Action hook) => _pendingHooks.Add(hook);
+
+    private void Hooked(Action locked)
+    {
+        try
+        {
+            locked();
         }
+        finally
+        {
+            RunPendingHooks();
+        }
+    }
+
+    private void RunPendingHooks()
+    {
+        Action[] todo;
+
+        lock (_lock)
+        {
+            todo = [.. _pendingHooks];
+            _pendingHooks.Clear();
+        }
+
+        foreach (Action hook in todo)
+            hook();
     }
 
     private static IMonsterAilment[] SnapshotAilments(IMonster monster)
@@ -650,23 +711,13 @@ internal sealed class HuntRecorder : IDisposable
             // The game closed (or HunterPie is stopping) in the middle of a hunt: still leave a summary
             if (_quest is { } quest)
             {
-                quest.OnDeathCounterChange -= OnCartCounterChange;
+                Later(() => quest.OnDeathCounterChange -= OnCartCounterChange);
                 PollMembersSafe();
                 _skills.CloseAll(QuestSeconds());
                 Event("Hunt interrupted: the game closed or HunterPie stopped");
                 _sink.EndHunt(BuildSummary(quest, "Interrupted", DateTime.Now - _questStartedAt));
                 _quest = null;
             }
-
-            _context.Game.Player.OnLogin -= OnLogin;
-            _context.Game.Player.OnLogout -= OnLogout;
-            _context.Game.Player.OnStageUpdate -= OnStageUpdate;
-            _context.Game.Player.OnAbnormalityStart -= OnAbnormalityStart;
-            _context.Game.Player.OnAbnormalityEnd -= OnAbnormalityEnd;
-            _context.Game.OnMonsterSpawn -= OnMonsterSpawn;
-            _context.Game.OnMonsterDespawn -= OnMonsterDespawn;
-            _context.Game.OnQuestStart -= OnQuestStart;
-            _context.Game.OnQuestEnd -= OnQuestEnd;
 
             foreach (IMonster monster in _monsters.Keys.ToArray())
                 Unsubscribe(monster);
@@ -675,6 +726,18 @@ internal sealed class HuntRecorder : IDisposable
         }
 
         _timer.Dispose();
+
+        _context.Game.Player.OnLogin -= OnLogin;
+        _context.Game.Player.OnLogout -= OnLogout;
+        _context.Game.Player.OnStageUpdate -= OnStageUpdate;
+        _context.Game.Player.OnAbnormalityStart -= OnAbnormalityStart;
+        _context.Game.Player.OnAbnormalityEnd -= OnAbnormalityEnd;
+        _context.Game.OnMonsterSpawn -= OnMonsterSpawn;
+        _context.Game.OnMonsterDespawn -= OnMonsterDespawn;
+        _context.Game.OnQuestStart -= OnQuestStart;
+        _context.Game.OnQuestEnd -= OnQuestEnd;
+
+        RunPendingHooks();
     }
 
     private void PollMembersSafe()
