@@ -162,8 +162,10 @@ that file. `--dump-skills` and `--diff-skills` help find out whether they are in
 A dump is a text file in the log folder (`skills-<label>-<date>-<time>.txt`) and the command also prints the slots with a
 running timer, with the name of the tracked skill each one is, which doubles as a check that the table was found. The
 diff lists the 4-byte words that changed in each slot, first for slots that are not in the XML (where a new skill would
-show up) and then for ones that are. A skill with a timer shows a float going from 0 to a positive value at +0x10; a skill
-that only switches on and off shows a small int flipping. Confirm with a second situation that one slot always follows
+show up) and then for ones that are. It covers the first 0x800 bytes of the block, both the structs the slots point at and
+the slots that are plain values rather than pointers (the game seems to keep some on/off skill flags there as bytes). A
+skill with a timer shows a float going from 0 to a positive value at +0x10; a skill that only switches on and off shows a
+small int or a single byte flipping, with the changed bytes listed. Confirm with a second situation that one slot always follows
 the skill, then add an `Abnormality` line to the XML (`Id="Skills.<game skill id>"`, `Name`, `Offset="<slot>"`, and
 `DependsOn`/`WithValue` for a flag instead of a timer). If nothing new changes, the skill is not in this table.
 

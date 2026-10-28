@@ -12,22 +12,26 @@ namespace HunterPie.Linux.Services;
 /// --dump-skills and --diff-skills: find where the game keeps a skill HunterPie does not track yet.
 /// The scanner reads Wilds skills from a table of pointers (the map's Player::Abnormalities::Skills), one slot per
 /// tracked skill, each pointing at a small struct with the timer at +0x10. The dump saves every slot and the start of
-/// the struct it points at; the diff compares two dumps (skill off, skill on) and shows which slots changed. Reads only.
+/// the struct it points at, and the words that are not pointers are saved as they are (the game keeps some skill flags as
+/// plain bytes in the same block); the diff compares two dumps (skill off, skill on) and shows what changed. Reads only.
 /// </summary>
 internal static class SkillTableDump
 {
     private const string GameName = SupportedGameNames.MONSTER_HUNTER_WILDS;
     private const string Header = "# HunterPie skill table dump";
 
-    // 128 slots of 8 bytes; the tracked skills use the first 0x100 or so, and the rest is cheap to look at too
-    private const int TableBytes = 0x400;
+    // 256 slots of 8 bytes; the tracked skills use the first 0x100 or so, and the rest (where plain flags may live) is
+    // cheap to look at too. Read in chunks, because the block may be shorter than this and a read that crosses the end of
+    // the mapped memory fails as a whole
+    private const int TableBytes = 0x800;
+    private const int ChunkBytes = 0x100;
     private const int FullStructBytes = 0x80;
     private const int ShortStructBytes = 0x40;
 
     private const long MinPointer = 0x10000;
     private const long MaxPointer = 0x7FFFFFFFFFFF;
 
-    private sealed record Slot(int Offset, bool IsPointer, byte[] Data);
+    private sealed record Slot(int Offset, bool IsPointer, byte[] Data, long Value);
 
     public static int Dump(string? label)
     {
@@ -66,8 +70,12 @@ internal static class SkillTableDump
         }
 
         byte[] raw = new byte[TableBytes];
+        int readable = 0;
 
-        if (!memory.TryRead(table, raw))
+        while (readable < TableBytes && memory.TryRead(table + readable, raw.AsSpan(readable, ChunkBytes)))
+            readable += ChunkBytes;
+
+        if (readable == 0)
         {
             Console.Error.WriteLine($"The skill table at 0x{table:X} cannot be read.");
             return 1;
@@ -75,14 +83,14 @@ internal static class SkillTableDump
 
         var slots = new List<Slot>();
 
-        for (int offset = 0; offset < TableBytes; offset += 8)
+        for (int offset = 0; offset < readable; offset += 8)
         {
             byte[] slotBytes = raw.AsSpan(offset, 8).ToArray();
             long value = BinaryPrimitives.ReadInt64LittleEndian(slotBytes);
 
             if (value < MinPointer || value > MaxPointer)
             {
-                slots.Add(new Slot(offset, false, slotBytes));
+                slots.Add(new Slot(offset, false, slotBytes, value));
                 continue;
             }
 
@@ -95,17 +103,17 @@ internal static class SkillTableDump
 
                 if (!memory.TryRead((nint)value, data))
                 {
-                    slots.Add(new Slot(offset, false, slotBytes));
+                    slots.Add(new Slot(offset, false, slotBytes, value));
                     continue;
                 }
             }
 
-            slots.Add(new Slot(offset, true, data));
+            slots.Add(new Slot(offset, true, data, value));
         }
 
         Dictionary<int, string> known = LoadKnownSkills();
 
-        Console.WriteLine($"Game version {version}. Skill table at 0x{table:X}: {slots.Count(it => it.IsPointer)} of {slots.Count} slots hold a readable pointer.");
+        Console.WriteLine($"Game version {version}. Skill table at 0x{table:X}: {slots.Count(it => it.IsPointer)} of {slots.Count} slots hold a readable pointer ({readable:X} bytes of the block could be read).");
         Console.WriteLine();
         Console.WriteLine("Slots with a running timer right now (Timer at +0x10 above 0, MaxTimer at +0x14):");
 
@@ -140,7 +148,9 @@ internal static class SkillTableDump
         };
 
         foreach (Slot slot in slots)
-            lines.Add($"slot {slot.Offset:X} {(slot.IsPointer ? "ptr" : "raw")} {Convert.ToHexString(slot.Data)}");
+            lines.Add(slot.IsPointer
+                ? $"slot {slot.Offset:X} ptr {Convert.ToHexString(slot.Data)} {slot.Value:X}"
+                : $"slot {slot.Offset:X} raw {Convert.ToHexString(slot.Data)}");
 
         try
         {
@@ -210,7 +220,7 @@ internal static class SkillTableDump
                 continue;
 
             List<string> target = known.ContainsKey(offset) ? knownChanges : unknownChanges;
-            target.Add($"slot {offset:X2}  {Describe(known, offset)}");
+            target.Add($"slot {offset:X2}  {Describe(known, offset)}{(after[offset].IsPointer ? string.Empty : "  (plain value in the table, not a pointer)")}");
             target.AddRange(changes);
         }
 
@@ -232,9 +242,10 @@ internal static class SkillTableDump
         }
         else
         {
-            Console.WriteLine("A timer-based skill shows a float going from 0 to a positive number at +0x10 (and +0x14). A skill that");
-            Console.WriteLine("switches on and off without a timer shows a small int flag flipping instead. Repeat with a different");
-            Console.WriteLine("situation to confirm one slot always follows the skill, then send me the slot and the lines under it.");
+            Console.WriteLine("A timer-based skill shows a float going from 0 to a positive number at +0x10 (and +0x14) inside a slot's");
+            Console.WriteLine("struct. A skill that switches on and off without a timer shows a flag flipping (a 0 -> 1 byte, either inside a");
+            Console.WriteLine("struct or as a plain value in the table itself). Repeat with a different situation to confirm one slot always");
+            Console.WriteLine("follows the skill, then send me the slot and the lines under it.");
         }
 
         return 0;
@@ -252,7 +263,10 @@ internal static class SkillTableDump
             Console.WriteLine(line.StartsWith("slot", StringComparison.Ordinal) ? $"  {line}" : $"    {line}");
     }
 
-    /// <summary>The changed 4-byte words of a slot's struct, leaving out words that also differ in the control dump</summary>
+    /// <summary>
+    /// The changed 4-byte words of a slot (the struct it points at, or the plain 8 bytes when it is not a pointer),
+    /// leaving out words that also differ in the control dump
+    /// </summary>
     private static List<string> Compare(Slot before, Slot after, Slot? control)
     {
         var result = new List<string>();
@@ -260,14 +274,11 @@ internal static class SkillTableDump
         if (before.IsPointer != after.IsPointer)
         {
             result.Add(after.IsPointer
-                ? "the slot now holds a pointer (it did not before)"
-                : "the slot no longer holds a readable pointer");
+                ? $"the slot now holds a pointer (before it held the plain value {Convert.ToHexString(before.Data)})"
+                : $"the slot no longer holds a readable pointer (now the plain value {Convert.ToHexString(after.Data)})");
 
             return result;
         }
-
-        if (!before.IsPointer)
-            return result;
 
         int length = Math.Min(before.Data.Length, after.Data.Length);
 
@@ -280,7 +291,7 @@ internal static class SkillTableDump
                 continue;
 
             // Something that differs between the two "off" dumps moves on its own and says nothing about the skill
-            if (control is { IsPointer: true } && word + 4 <= control.Data.Length && !x.SequenceEqual(control.Data.AsSpan(word, 4)))
+            if (control is not null && control.IsPointer == before.IsPointer && word + 4 <= control.Data.Length && !x.SequenceEqual(control.Data.AsSpan(word, 4)))
                 continue;
 
             int oldInt = BinaryPrimitives.ReadInt32LittleEndian(x);
@@ -288,7 +299,13 @@ internal static class SkillTableDump
             float oldFloat = BitConverter.Int32BitsToSingle(oldInt);
             float newFloat = BitConverter.Int32BitsToSingle(newInt);
 
-            result.Add($"+0x{word:X2}  {Convert.ToHexString(x)} -> {Convert.ToHexString(y)}   int {oldInt} -> {newInt}   float {oldFloat:G6} -> {newFloat:G6}");
+            var bytes = new List<string>();
+
+            for (int i = 0; i < 4; i++)
+                if (x[i] != y[i])
+                    bytes.Add($"+0x{word + i:X2}: {x[i]:X2}->{y[i]:X2}");
+
+            result.Add($"+0x{word:X2}  {Convert.ToHexString(x)} -> {Convert.ToHexString(y)}   int {oldInt} -> {newInt}   float {oldFloat:G6} -> {newFloat:G6}   bytes {string.Join(", ", bytes)}");
         }
 
         return result;
@@ -370,12 +387,15 @@ internal static class SkillTableDump
 
             string[] parts = line.Split(' ');
 
-            if (parts.Length != 4 || parts[0] != "slot" || !int.TryParse(parts[1], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int offset))
+            if (parts.Length is not (4 or 5) || parts[0] != "slot" || !int.TryParse(parts[1], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int offset))
                 continue;
 
             try
             {
-                slots[offset] = new Slot(offset, parts[2] == "ptr", Convert.FromHexString(parts[3]));
+                bool isPointer = parts[2] == "ptr";
+                long value = parts.Length == 5 && long.TryParse(parts[4], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out long pointer) ? pointer : 0;
+
+                slots[offset] = new Slot(offset, isPointer, Convert.FromHexString(parts[3]), value);
             }
             catch (FormatException)
             {
