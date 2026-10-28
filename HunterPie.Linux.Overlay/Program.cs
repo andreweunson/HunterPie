@@ -39,7 +39,13 @@ internal static class Program
 
         App.Options = options;
 
-        return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        int exitCode = BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+
+        // The window is gone and everything has been told to stop. Threads the game host left running must not keep
+        // the process alive after that.
+        Environment.Exit(exitCode);
+
+        return exitCode;
     }
 
     public static AppBuilder BuildAvaloniaApp() =>

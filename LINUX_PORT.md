@@ -204,6 +204,14 @@ like a flinch gauge (it fills with hits and resets with a larger maximum when th
 length of the exhaustion and counts it down. The stamina bar turns teal and reads "EXHAUSTED 38s" for that. The Ailments checkbox in the settings window turns the row off. Names come from the
 language file (`Languages/en-us.xml`), colours match the Windows client.
 
+### Quitting
+
+*Quit HunterPie* (or closing the settings window) stops the game session on a background thread, waits up to 3 s for
+it, and ends the process; a watchdog exits after 6 s whatever is still running, and `Main` calls `Environment.Exit`
+so a thread left behind by the game host cannot keep the process alive. The session log gets `[App] Quit requested`,
+`[App] Game session stopped` (or `did not stop in time` / `Shutdown took too long`), which says where a slow quit
+was held up.
+
 ### Damage meter
 
 Rows are sorted by damage, with the colour bar showing each member's share of the team total; support hunters are

@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
+using HunterPie.Core.Observability.Logging;
 using HunterPie.DI;
 using HunterPie.Linux.Bootstrap;
 using HunterPie.Linux.Overlay.Services;
@@ -106,13 +107,36 @@ public partial class App : Application
         }
     }
 
+    // How long the game session gets to wind down before the process leaves without it
+    private static readonly TimeSpan SessionStopTimeout = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan ShutdownDeadline = TimeSpan.FromSeconds(6);
+
     private void Shutdown()
     {
+        ILogger? logger = _session is null ? null : LoggerFactory.Create();
+        logger?.Info("[App] Quit requested, shutting down");
+
+        // Whatever below hangs (a game session that will not stop, a thread that keeps the runtime alive), the quit
+        // button must end the process; being killed from the terminal is not an acceptable way out
+        new Thread(() =>
+        {
+            Thread.Sleep(ShutdownDeadline);
+            logger?.Warning("[App] Shutdown took too long, exiting anyway");
+            Environment.Exit(0);
+        })
+        { IsBackground = true, Name = "shutdown-deadline" }.Start();
+
         InstanceControl.Unregister();
         _demo?.Dispose();
         _viewModel?.Stop();
         _viewModel?.Layout.Flush();
         _editSignal?.Dispose();
-        _session?.Dispose();
+
+        if (_session is { } session)
+        {
+            // Off the UI thread: stopping the scan loop and disposing the game objects must never freeze the window
+            bool stopped = Task.Run(session.Dispose).Wait(SessionStopTimeout);
+            logger?.Info(stopped ? "[App] Game session stopped" : "[App] The game session did not stop in time, leaving without it");
+        }
     }
 }
