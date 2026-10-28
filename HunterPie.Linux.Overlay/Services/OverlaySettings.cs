@@ -47,14 +47,14 @@ public sealed class MonsterPlacement : WidgetPlacement
 }
 
 /// <summary>Reads the mode by name; a name this version does not know means the default rather than a lost settings file</summary>
-internal sealed class GraphModeConverter : JsonConverter<GraphMode>
+internal sealed class NameOrDefaultConverter<T> : JsonConverter<T> where T : struct, Enum
 {
-    public override GraphMode Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-        reader.TokenType == JsonTokenType.String && Enum.TryParse(reader.GetString(), true, out GraphMode mode) && Enum.IsDefined(mode)
-            ? mode
-            : GraphMode.DamagePerSecond;
+    public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+        reader.TokenType == JsonTokenType.String && Enum.TryParse(reader.GetString(), true, out T value) && Enum.IsDefined(value)
+            ? value
+            : default;
 
-    public override void Write(Utf8JsonWriter writer, GraphMode value, JsonSerializerOptions options) =>
+    public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options) =>
         writer.WriteStringValue(value.ToString());
 }
 
@@ -65,8 +65,17 @@ public sealed class DamagePlacement : WidgetPlacement
     public bool ShowStats { get; set; } = true;
 
     /// <summary>What the graph plots: DamagePerSecond, MovingAverage or TotalDamage</summary>
-    [JsonConverter(typeof(GraphModeConverter))]
+    [JsonConverter(typeof(NameOrDefaultConverter<GraphMode>))]
     public GraphMode GraphMode { get; set; } = GraphMode.DamagePerSecond;
+
+    /// <summary>Where DPS starts counting: RelativeToJoin, RelativeToQuest or RelativeToFirstHit</summary>
+    [JsonConverter(typeof(NameOrDefaultConverter<DpsStrategy>))]
+    public DpsStrategy DpsStrategy { get; set; } = DpsStrategy.RelativeToJoin;
+
+    /// <summary>With the moving average: only draw the last GraphVisibleSeconds</summary>
+    public bool DiscardOldPoints { get; set; }
+
+    public int GraphVisibleSeconds { get; set; } = DamageViewModel.DefaultVisibleSeconds;
 
     /// <summary>Seconds the moving average looks back</summary>
     public int GraphWindowSeconds { get; set; } = DamageViewModel.DefaultWindowSeconds;
@@ -162,8 +171,11 @@ public sealed class OverlaySettings
             .Select(it => it.Trim())];
 
         settings.Damage.GraphWindowSeconds = Math.Clamp(settings.Damage.GraphWindowSeconds, DamageViewModel.MinWindowSeconds, PlayerDamageViewModel.MaxWindowSeconds);
+        settings.Damage.GraphVisibleSeconds = Math.Clamp(settings.Damage.GraphVisibleSeconds, DamageViewModel.MinVisibleSeconds, PlayerDamageViewModel.RecentCapacity);
         if (!Enum.IsDefined(settings.Damage.GraphMode))
             settings.Damage.GraphMode = GraphMode.DamagePerSecond;
+        if (!Enum.IsDefined(settings.Damage.DpsStrategy))
+            settings.Damage.DpsStrategy = DpsStrategy.RelativeToJoin;
 
         settings.Screen = Math.Max(0, settings.Screen);
 

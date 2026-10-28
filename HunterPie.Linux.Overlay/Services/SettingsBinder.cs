@@ -39,16 +39,23 @@ internal static class SettingsBinder
         damage.ShowStats = settings.Damage.ShowStats;
         damage.GraphMode = settings.Damage.GraphMode;
         damage.WindowSeconds = settings.Damage.GraphWindowSeconds;
+        damage.Strategy = settings.Damage.DpsStrategy;
+        damage.VisibleSeconds = settings.Damage.GraphVisibleSeconds;
+        damage.DiscardOldPoints = settings.Damage.DiscardOldPoints;
         damage.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName is not (nameof(DamageViewModel.ShowGraph) or nameof(DamageViewModel.ShowStats)
-                or nameof(DamageViewModel.GraphMode) or nameof(DamageViewModel.WindowSeconds)))
+                or nameof(DamageViewModel.GraphMode) or nameof(DamageViewModel.WindowSeconds)
+                or nameof(DamageViewModel.Strategy) or nameof(DamageViewModel.DiscardOldPoints) or nameof(DamageViewModel.VisibleSeconds)))
                 return;
 
             settings.Damage.ShowGraph = damage.ShowGraph;
             settings.Damage.ShowStats = damage.ShowStats;
             settings.Damage.GraphMode = damage.GraphMode;
             settings.Damage.GraphWindowSeconds = damage.WindowSeconds;
+            settings.Damage.DpsStrategy = damage.Strategy;
+            settings.Damage.DiscardOldPoints = damage.DiscardOldPoints;
+            settings.Damage.GraphVisibleSeconds = damage.VisibleSeconds;
             settings.Save();
         };
     }

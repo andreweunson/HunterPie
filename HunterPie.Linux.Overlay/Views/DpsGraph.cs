@@ -18,6 +18,9 @@ public sealed class DpsGraph : Control
     public static readonly StyledProperty<int> CountProperty =
         AvaloniaProperty.Register<DpsGraph, int>(nameof(Count));
 
+    public static readonly StyledProperty<int> StartProperty =
+        AvaloniaProperty.Register<DpsGraph, int>(nameof(Start));
+
     public static readonly StyledProperty<double> MaxProperty =
         AvaloniaProperty.Register<DpsGraph, double>(nameof(Max), 10);
 
@@ -31,7 +34,7 @@ public sealed class DpsGraph : Control
 
     static DpsGraph()
     {
-        AffectsRender<DpsGraph>(RowsProperty, CountProperty, MaxProperty, VersionProperty);
+        AffectsRender<DpsGraph>(RowsProperty, CountProperty, StartProperty, MaxProperty, VersionProperty);
     }
 
     public IReadOnlyList<PlayerDamageViewModel>? Rows
@@ -45,6 +48,13 @@ public sealed class DpsGraph : Control
     {
         get => GetValue(CountProperty);
         set => SetValue(CountProperty, value);
+    }
+
+    /// <summary>First slot to draw; the ones before it are discarded</summary>
+    public int Start
+    {
+        get => GetValue(StartProperty);
+        set => SetValue(StartProperty, value);
     }
 
     /// <summary>DPS at the top edge</summary>
@@ -66,7 +76,7 @@ public sealed class DpsGraph : Control
         context.DrawRectangle(Track, null, new RoundedRect(area, 4));
         context.DrawLine(Grid, new Point(0, area.Height / 2), new Point(area.Width, area.Height / 2));
 
-        if (Rows is not { Count: > 0 } rows || Count < 2 || Max <= 0)
+        if (Rows is not { Count: > 0 } rows || Count - Start < 2 || Max <= 0)
             return;
 
         // Leaders are drawn last so their lines are on top; the local player's line is thicker and goes over everything
@@ -83,7 +93,8 @@ public sealed class DpsGraph : Control
     {
         float[] history = row.History;
         int count = Math.Min(Count, history.Length);
-        double xStep = area.Width / (count - 1);
+        int start = Math.Clamp(Start, 0, Math.Max(0, count - 2));
+        double xStep = area.Width / (count - start - 1);
         double top = 2;
         double height = area.Height - top * 2;
         var geometry = new StreamGeometry();
@@ -91,7 +102,7 @@ public sealed class DpsGraph : Control
 
         using (StreamGeometryContext path = geometry.Open())
         {
-            for (int t = 0; t < count; t++)
+            for (int t = start; t < count; t++)
             {
                 float value = history[t];
 
@@ -99,7 +110,7 @@ public sealed class DpsGraph : Control
                 if (float.IsNaN(value))
                     continue;
 
-                var point = new Point(t * xStep, top + height - Math.Clamp(value / Max, 0, 1) * height);
+                var point = new Point((t - start) * xStep, top + height - Math.Clamp(value / Max, 0, 1) * height);
 
                 if (!open)
                 {

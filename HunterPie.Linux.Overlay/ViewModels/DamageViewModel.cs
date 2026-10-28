@@ -17,6 +17,8 @@ public sealed class DamageViewModel : ViewModelBase
 
     public const int DefaultWindowSeconds = 10;
     public const int MinWindowSeconds = 5;
+    public const int DefaultVisibleSeconds = 60;
+    public const int MinVisibleSeconds = 10;
 
     private readonly List<IPartyMember> _snapshot = new(8);
     private bool _isActive;
@@ -35,6 +37,11 @@ public sealed class DamageViewModel : ViewModelBase
     private string _graphMaxText = string.Empty;
     private GraphMode _graphMode = GraphMode.DamagePerSecond;
     private int _windowSeconds = DefaultWindowSeconds;
+    private DpsStrategy _strategy = DpsStrategy.RelativeToJoin;
+    private bool _discardOld;
+    private int _visibleSeconds = DefaultVisibleSeconds;
+    private int _recentCount;
+    private double _nextRecentAt;
     private int _summaryTotal = -1;
     private int _summarySecond = -1;
 
@@ -107,12 +114,8 @@ public sealed class DamageViewModel : ViewModelBase
             if (!Set(ref _graphMode, value))
                 return;
 
-            for (int i = 0; i < Rows.Count; i++)
-                Rows[i].Mode = value;
-
-            RefreshPeak();
-            GraphVersion++;
             Raise(nameof(IsMovingAverage));
+            ApplyHistorySelection();
         }
     }
 
@@ -131,12 +134,91 @@ public sealed class DamageViewModel : ViewModelBase
             for (int i = 0; i < Rows.Count; i++)
                 Rows[i].ClearMovingAverage();
 
+            _recentCount = 0;
+            Raise(nameof(GraphCount));
+            Raise(nameof(GraphStart));
             RefreshPeak();
             GraphVersion++;
         }
     }
 
     public bool IsMovingAverage => GraphMode == GraphMode.MovingAverage;
+
+    /// <summary>User option: which moment the seconds in DPS are counted from</summary>
+    public DpsStrategy Strategy
+    {
+        get => _strategy;
+        set
+        {
+            if (!Set(ref _strategy, value))
+                return;
+
+            // Samples taken with the old strategy would be a different curve
+            for (int i = 0; i < Rows.Count; i++)
+            {
+                Rows[i].ClearPerSecond();
+                Rows[i].ClearMovingAverage();
+            }
+
+            _recentCount = 0;
+            Raise(nameof(GraphCount));
+            Raise(nameof(GraphStart));
+            RefreshPeak();
+            GraphVersion++;
+        }
+    }
+
+    /// <summary>User option (moving average only): the graph shows just the latest seconds instead of the whole quest</summary>
+    public bool DiscardOldPoints
+    {
+        get => _discardOld;
+        set
+        {
+            if (!Set(ref _discardOld, value))
+                return;
+
+            ApplyHistorySelection();
+        }
+    }
+
+    /// <summary>User option: how many seconds the graph shows when old points are discarded</summary>
+    public int VisibleSeconds
+    {
+        get => _visibleSeconds;
+        set
+        {
+            value = Math.Clamp(value, MinVisibleSeconds, PlayerDamageViewModel.RecentCapacity);
+
+            if (!Set(ref _visibleSeconds, value))
+                return;
+
+            ApplyHistorySelection();
+        }
+    }
+
+    private bool UsesRecent => DiscardOldPoints && GraphMode == GraphMode.MovingAverage;
+
+    /// <summary>Number of valid slots in the history the graph draws</summary>
+    public int GraphCount => UsesRecent ? _recentCount : _sampleCount;
+
+    /// <summary>First slot the graph draws</summary>
+    public int GraphStart => UsesRecent ? Math.Max(0, _recentCount - VisibleSeconds) : 0;
+
+    private void ApplyHistorySelection()
+    {
+        bool recent = UsesRecent;
+
+        for (int i = 0; i < Rows.Count; i++)
+        {
+            Rows[i].Mode = GraphMode;
+            Rows[i].UseRecent = recent;
+        }
+
+        Raise(nameof(GraphCount));
+        Raise(nameof(GraphStart));
+        RefreshPeak();
+        GraphVersion++;
+    }
 
     public bool ShowGraphPanel => ShowGraph && HasRows;
 
@@ -251,10 +333,10 @@ public sealed class DamageViewModel : ViewModelBase
 
         if (Rows.Count == 0)
         {
-            Rows.Add(new PlayerDamageViewModel("You", 0, true, Weapon.Greatsword) { ShowStats = ShowStats, Mode = GraphMode });
-            Rows.Add(new PlayerDamageViewModel("Hunter 2", 1, false, Weapon.Bow) { ShowStats = ShowStats, Mode = GraphMode });
-            Rows.Add(new PlayerDamageViewModel("Hunter 3", 2, false, Weapon.SwitchAxe) { ShowStats = ShowStats, Mode = GraphMode });
-            Rows.Add(new PlayerDamageViewModel("Support hunter", PlayerDamageViewModel.CompanionSlot, false, Weapon.Lance) { ShowStats = ShowStats, Mode = GraphMode });
+            Rows.Add(new PlayerDamageViewModel("You", 0, true, Weapon.Greatsword) { ShowStats = ShowStats, Mode = GraphMode, UseRecent = UsesRecent });
+            Rows.Add(new PlayerDamageViewModel("Hunter 2", 1, false, Weapon.Bow) { ShowStats = ShowStats, Mode = GraphMode, UseRecent = UsesRecent });
+            Rows.Add(new PlayerDamageViewModel("Hunter 3", 2, false, Weapon.SwitchAxe) { ShowStats = ShowStats, Mode = GraphMode, UseRecent = UsesRecent });
+            Rows.Add(new PlayerDamageViewModel("Support hunter", PlayerDamageViewModel.CompanionSlot, false, Weapon.Lance) { ShowStats = ShowStats, Mode = GraphMode, UseRecent = UsesRecent });
         }
 
         double[] rates = [64, 48, 33, 12];
@@ -312,7 +394,7 @@ public sealed class DamageViewModel : ViewModelBase
             // they already have when first seen does not count towards DPS if that is early in the quest (the quest
             // clock can start after the fight did) or if they joined later; attaching mid-quest keeps the old behaviour.
             int baseline = _primed || elapsed < EarlyQuestSeconds ? Math.Max(member.Damage, 0) : 0;
-            Rows.Add(new PlayerDamageViewModel(member, _primed || baseline > 0 ? elapsed : 0, baseline) { ShowStats = ShowStats, Mode = GraphMode });
+            Rows.Add(new PlayerDamageViewModel(member, _primed || baseline > 0 ? elapsed : 0, baseline) { ShowStats = ShowStats, Mode = GraphMode, UseRecent = UsesRecent });
         }
 
         if (Rows.Count > 0)
@@ -341,12 +423,12 @@ public sealed class DamageViewModel : ViewModelBase
             PlayerDamageViewModel row = Rows[i];
             IPartyMember member = row.Source!;
             int damage = Math.Max(member.Damage, 0);
-            double seconds = Math.Max(1, elapsed - Math.Min(elapsed, row.JoinedAt));
 
             row.SetName(member.Name);
             row.SetWeapon(member.Weapon);
             row.SetStatus(member.Status);
-            row.Set(damage, Math.Max(damage - row.BaselineDamage, 0) / seconds, total > 0 ? damage * 100.0 / total : 0);
+            row.NoteDamage(elapsed, damage);
+            row.Set(damage, row.ComputeDps(elapsed, damage, Strategy), total > 0 ? damage * 100.0 / total : 0);
         }
 
         UpdateSummary(total, elapsed);
@@ -362,27 +444,64 @@ public sealed class DamageViewModel : ViewModelBase
     /// </summary>
     private void SampleIfDue(double elapsed)
     {
-        if (elapsed < _nextSampleAt)
+        bool sampled = SampleRecent(elapsed);
+
+        if (elapsed >= _nextSampleAt)
+        {
+            _nextSampleAt = Math.Floor(elapsed) + _sampleStride;
+
+            if (_sampleCount >= PlayerDamageViewModel.HistoryCapacity)
+                Compact();
+
+            for (int i = 0; i < Rows.Count; i++)
+            {
+                PlayerDamageViewModel row = Rows[i];
+                row.PerSecondHistory[_sampleCount] = (float)row.Dps;
+                row.RollingHistory[_sampleCount] = (float)row.MovingAverage(elapsed, row.Damage, WindowSeconds, Strategy);
+                row.TotalHistory[_sampleCount] = row.Damage;
+            }
+
+            _sampleCount++;
+            Raise(nameof(SampleCount));
+            sampled = true;
+        }
+
+        if (!sampled)
             return;
 
-        _nextSampleAt = Math.Floor(elapsed) + _sampleStride;
+        Raise(nameof(GraphCount));
+        Raise(nameof(GraphStart));
+        RefreshPeak();
+        GraphVersion++;
+    }
 
-        if (_sampleCount >= PlayerDamageViewModel.HistoryCapacity)
-            Compact();
+    /// <summary>
+    /// The moving average of the last <see cref="PlayerDamageViewModel.RecentCapacity"/> seconds, one value per second
+    /// and always, so turning "discard old points" on shows a full graph straight away. Slides left once it is full.
+    /// </summary>
+    private bool SampleRecent(double elapsed)
+    {
+        if (elapsed < _nextRecentAt)
+            return false;
+
+        _nextRecentAt = Math.Floor(elapsed) + 1;
+        bool full = _recentCount >= PlayerDamageViewModel.RecentCapacity;
 
         for (int i = 0; i < Rows.Count; i++)
         {
             PlayerDamageViewModel row = Rows[i];
-            row.PerSecondHistory[_sampleCount] = (float)row.Dps;
-            row.RollingHistory[_sampleCount] = (float)row.MovingAverage(elapsed, row.Damage, WindowSeconds);
-            row.TotalHistory[_sampleCount] = row.Damage;
+            float[] recent = row.RecentHistory;
+
+            if (full)
+                Array.Copy(recent, 1, recent, 0, recent.Length - 1);
+
+            recent[full ? recent.Length - 1 : _recentCount] = (float)row.MovingAverage(elapsed, row.Damage, WindowSeconds, Strategy);
         }
 
-        _sampleCount++;
+        if (!full)
+            _recentCount++;
 
-        RefreshPeak();
-        Raise(nameof(SampleCount));
-        GraphVersion++;
+        return true;
     }
 
     private void RecordSeconds(double elapsed)
@@ -400,7 +519,7 @@ public sealed class DamageViewModel : ViewModelBase
         {
             float[] history = Rows[i].History;
 
-            for (int t = 0; t < _sampleCount; t++)
+            for (int t = GraphStart; t < GraphCount; t++)
                 if (history[t] > max)
                     max = history[t];
         }
@@ -409,6 +528,7 @@ public sealed class DamageViewModel : ViewModelBase
         GraphMaxText = GraphMode switch
         {
             GraphMode.TotalDamage => $"{max:N0} damage",
+            GraphMode.MovingAverage when UsesRecent => $"peak {max:N0} DPS · {WindowSeconds} s average, last {VisibleSeconds} s",
             GraphMode.MovingAverage => $"peak {max:N0} DPS · {WindowSeconds} s average",
             _ => $"peak {max:N0} DPS"
         };
@@ -474,9 +594,13 @@ public sealed class DamageViewModel : ViewModelBase
         _sampleCount = 0;
         _sampleStride = 1;
         _nextSampleAt = 0;
+        _recentCount = 0;
+        _nextRecentAt = 0;
         GraphMax = 10;
         GraphMaxText = string.Empty;
         Raise(nameof(SampleCount));
+        Raise(nameof(GraphCount));
+        Raise(nameof(GraphStart));
         GraphVersion++;
     }
 

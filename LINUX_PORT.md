@@ -217,7 +217,20 @@ client's damage plot strategy: *Damage per second* (the number the rows show, da
 hunter joined), *Moving average damage per second* (damage dealt in the last 5 to 60 seconds, 10 by default, divided
 by that time; before that much time has passed it equals the plain DPS) and *Total damage*. The three histories are
 recorded side by side, so switching shows what was already recorded; changing the moving average window starts that
-line afresh. Saved as `GraphMode` and `GraphWindowSeconds` in `overlay.json`. The history has a fixed size: when it fills up every second sample is
+line afresh. Saved as `GraphMode` and `GraphWindowSeconds` in `overlay.json`.
+
+*DPS from* sets where the seconds in DPS are counted from, for the rows and the graph alike: *Joining the quest* (the
+default: from when the hunter was first seen, which is the quest start for those there from the beginning), *Start of
+the quest*, or *First hit* (so the walk to the monster does not count; a hunter who has not hit anything yet shows 0).
+Damage dealt before the quest clock started is left out in all three. With the moving average, a window longer than the
+time since the start of the count simply uses that time. In the hunt log's summary the DPS is still the per-hunter
+since-joining figure.
+
+With the moving average there is also *Discard old points*: the graph then shows only the last 10 to 120 seconds
+(60 by default) at one point per second, sliding as the quest goes on, instead of the whole quest. The recent seconds
+are recorded all the time, so switching it on shows a full graph at once. Changing the DPS strategy or the window
+restarts the moving average line (and the DPS line for the strategy). Saved as `DpsStrategy`, `DiscardOldPoints` and
+`GraphVisibleSeconds`. The history has a fixed size: when it fills up every second sample is
 dropped and the sampling interval doubles, so a whole quest always fits and drawing it never gets more expensive.
 
 The Damage meter section of the settings window turns the graph and the stats line on or off; the choice is saved in

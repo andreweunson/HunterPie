@@ -135,6 +135,10 @@
                         <StackPanel Margin="20,4,0,0" Spacing="4" IsEnabled="{Binding Layout.DamageEnabled}">
                             <CheckBox Content="DPS graph" IsChecked="{Binding Damage.ShowGraph}" />
                             <CheckBox Content="Player stats" IsChecked="{Binding Damage.ShowStats}" />
+                            <Grid ColumnDefinitions="70,*" Margin="0,4,0,0">
+                                <TextBlock Text="DPS from" VerticalAlignment="Center" Opacity="0.7" />
+                                <ComboBox Name="StrategyBox" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnStrategyChanged" />
+                            </Grid>
                             <Grid ColumnDefinitions="70,*" Margin="0,4,0,0" IsEnabled="{Binding Damage.ShowGraph}">
                                 <TextBlock Text="Graph" VerticalAlignment="Center" Opacity="0.7" />
                                 <ComboBox Name="GraphModeBox" Grid.Column="1" HorizontalAlignment="Stretch" SelectionChanged="OnGraphModeChanged" />
@@ -143,6 +147,14 @@
                                 <TextBlock Text="Window" VerticalAlignment="Center" Opacity="0.7" />
                                 <Slider Grid.Column="1" Minimum="5" Maximum="60" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding Damage.WindowSeconds}" />
                                 <TextBlock Grid.Column="2" Text="{Binding Damage.WindowSeconds, StringFormat='{}{0} s'}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                            </Grid>
+                            <CheckBox Content="Discard old points" IsChecked="{Binding Damage.DiscardOldPoints}"
+                                      IsEnabled="{Binding Damage.ShowGraph}" IsVisible="{Binding Damage.IsMovingAverage}" />
+                            <Grid ColumnDefinitions="70,*,50" IsVisible="{Binding Damage.IsMovingAverage}">
+                                <TextBlock Text="Show last" VerticalAlignment="Center" Opacity="0.7" />
+                                <Slider Grid.Column="1" Minimum="10" Maximum="120" TickFrequency="5" IsSnapToTickEnabled="True"
+                                        IsEnabled="{Binding Damage.DiscardOldPoints}" Value="{Binding Damage.VisibleSeconds}" />
+                                <TextBlock Grid.Column="2" Text="{Binding Damage.VisibleSeconds, StringFormat='{}{0} s'}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                             </Grid>
                         </StackPanel>
                     </StackPanel>

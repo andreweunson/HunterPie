@@ -23,6 +23,7 @@ public partial class SettingsWindow : Window
         {
             FillMonitors();
             FillGraphModes();
+            FillStrategies();
             ShowLogLocation();
         };
     }
@@ -33,6 +34,33 @@ public partial class SettingsWindow : Window
         (GraphMode.MovingAverage, "Moving average damage per second"),
         (GraphMode.TotalDamage, "Total damage")
     ];
+
+    private static readonly (DpsStrategy Strategy, string Text)[] Strategies =
+    [
+        (DpsStrategy.RelativeToJoin, "Joining the quest"),
+        (DpsStrategy.RelativeToQuest, "Start of the quest"),
+        (DpsStrategy.RelativeToFirstHit, "First hit")
+    ];
+
+    private bool _fillingStrategies;
+
+    private void FillStrategies()
+    {
+        _fillingStrategies = true;
+        StrategyBox.Items.Clear();
+
+        foreach ((_, string text) in Strategies)
+            StrategyBox.Items.Add(text);
+
+        StrategyBox.SelectedIndex = ViewModel is { } viewModel ? Array.FindIndex(Strategies, it => it.Strategy == viewModel.Damage.Strategy) : 0;
+        _fillingStrategies = false;
+    }
+
+    private void OnStrategyChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (!_fillingStrategies && ViewModel is { } viewModel && StrategyBox.SelectedIndex >= 0)
+            viewModel.Damage.Strategy = Strategies[StrategyBox.SelectedIndex].Strategy;
+    }
 
     private bool _fillingGraphModes;
 

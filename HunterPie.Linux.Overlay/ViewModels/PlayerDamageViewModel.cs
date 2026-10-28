@@ -42,22 +42,41 @@ public sealed class PlayerDamageViewModel : ViewModelBase
     private readonly float[] _totalHistory = CreateHistory();
 
     // Damage at the start of each recent second of quest time (and when exactly that was), for the moving average
-    private const int RingSize = 128;
+    private const int RingSize = 256;
     private readonly int[] _ringDamage = new int[RingSize];
     private readonly float[] _ringTime = new float[RingSize];
     private int _ringStart = -1;
     private int _ringSecond = -1;
 
-    /// <summary>The longest moving average window the ring can answer</summary>
+    // The last RecentCapacity seconds of moving average, newest last, for the graph that discards old points
+    public const int RecentCapacity = 120;
+    private readonly float[] _recentHistory = CreateRecent();
+
+    /// <summary>The longest moving average window the ring can answer (it must also cover the visible time span)</summary>
     public const int MaxWindowSeconds = 60;
 
     /// <summary>Which of the histories <see cref="History"/> returns</summary>
     public GraphMode Mode { get; set; }
 
+    /// <summary>With the moving average: use the history that only keeps recent seconds</summary>
+    public bool UseRecent { get; set; }
+
+    /// <summary>Quest time of this hunter's first hit, null until they have dealt damage here</summary>
+    public double? FirstHitAt { get; private set; }
+
+    public float[] RecentHistory => _recentHistory;
+
+    private static float[] CreateRecent()
+    {
+        float[] history = new float[RecentCapacity];
+        Array.Fill(history, float.NaN);
+        return history;
+    }
+
     /// <summary>Samples for the graph in the current mode, NaN where this member had not joined yet</summary>
     public float[] History => Mode switch
     {
-        GraphMode.MovingAverage => _rollingHistory,
+        GraphMode.MovingAverage => UseRecent ? _recentHistory : _rollingHistory,
         GraphMode.TotalDamage => _totalHistory,
         _ => _perSecondHistory
     };
@@ -98,8 +117,13 @@ public sealed class PlayerDamageViewModel : ViewModelBase
     /// Damage per second over the last <paramref name="window"/> seconds. Before that much time has passed since the
     /// hunter was first seen it is the average since then, so the line starts where the plain DPS does.
     /// </summary>
-    public double MovingAverage(double elapsed, int damage, int window)
+    public double MovingAverage(double elapsed, int damage, int window, DpsStrategy strategy = DpsStrategy.RelativeToJoin)
     {
+        double start = StartTime(strategy);
+
+        if (double.IsNaN(start))
+            return 0;
+
         window = Math.Clamp(window, 1, MaxWindowSeconds);
         int past = (int)elapsed - window;
 
@@ -109,19 +133,55 @@ public sealed class PlayerDamageViewModel : ViewModelBase
         if (_ringStart >= 0 && past >= _ringStart && past <= _ringSecond)
         {
             pastDamage = _ringDamage[past % RingSize];
-            pastTime = _ringTime[past % RingSize];
+
+            // Time before the start of the count (a first hit that came later) is not part of the average
+            pastTime = Math.Max(_ringTime[past % RingSize], start);
         }
         else
         {
             pastDamage = BaselineDamage;
-            pastTime = JoinedAt;
+            pastTime = start;
         }
 
         return Math.Max(damage - pastDamage, 0) / Math.Max(1, elapsed - pastTime);
     }
 
-    /// <summary>Throws away the moving average samples, which were made with a different window</summary>
-    public void ClearMovingAverage() => Array.Fill(_rollingHistory, float.NaN);
+    /// <summary>Throws away the moving average samples, which were made with a different window or DPS strategy</summary>
+    public void ClearMovingAverage()
+    {
+        Array.Fill(_rollingHistory, float.NaN);
+        Array.Fill(_recentHistory, float.NaN);
+    }
+
+    public void ClearPerSecond() => Array.Fill(_perSecondHistory, float.NaN);
+
+    /// <summary>Notes the moment of the first hit, which is when the first-hit strategy starts counting</summary>
+    public void NoteDamage(double elapsed, int damage)
+    {
+        if (FirstHitAt is null && damage > BaselineDamage)
+            FirstHitAt = elapsed;
+    }
+
+    /// <summary>Quest time the strategy counts from; NaN while that moment has not happened yet</summary>
+    public double StartTime(DpsStrategy strategy) => strategy switch
+    {
+        DpsStrategy.RelativeToQuest => 0,
+        DpsStrategy.RelativeToFirstHit => FirstHitAt ?? double.NaN,
+        _ => JoinedAt
+    };
+
+    /// <summary>Damage dealt here (the damage from before the quest clock is left out) over the time since the start of the count</summary>
+    public double ComputeDps(double elapsed, int damage, DpsStrategy strategy)
+    {
+        double start = StartTime(strategy);
+
+        if (double.IsNaN(start))
+            return 0;
+
+        double seconds = Math.Max(1, elapsed - Math.Min(elapsed, start));
+
+        return Math.Max(damage - BaselineDamage, 0) / seconds;
+    }
 
     public double Dps { get; private set; }
 
