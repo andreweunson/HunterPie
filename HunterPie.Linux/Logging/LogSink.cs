@@ -125,6 +125,33 @@ internal sealed class LogSink : IDisposable
         }
     }
 
+    /// <summary>
+    /// Adds lines to the session log and to a hunt file that has already been closed (what the My Hunt Report mod saves
+    /// a few seconds after the quest ends). A hunt file that is gone is skipped.
+    /// </summary>
+    public void AppendAfterHunt(string? huntPath, IEnumerable<string> lines)
+    {
+        string[] all = [string.Empty, .. lines];
+
+        lock (_lock)
+        {
+            foreach (string line in all)
+                Append(ref _session, line);
+
+            if (huntPath is null || !File.Exists(huntPath))
+                return;
+
+            try
+            {
+                File.AppendAllLines(huntPath, all);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Warn($"Could not add to the hunt log ({ex.Message})");
+            }
+        }
+    }
+
     /// <summary>Appends the summary to the hunt file (and the session log) and closes the hunt file</summary>
     public void EndHunt(IEnumerable<string> summary)
     {

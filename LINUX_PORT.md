@@ -80,12 +80,13 @@ summary has the result and duration, each monster that took damage (outcome, enr
 the others listed as not engaged) and the party's damage, share and DPS (the same "damage before the quest clock does
 not count" rule as the overlay). The flinch gauge is not logged: the game's counter for it misses most flinches.
 
-The summary ends with each timed skill's uptime: the share of the quest clock it was active, how long that is in total
-and how many times it activated. Only skills the game reports as timed buffs appear (Burst, Latent Power, Offensive
-Guard and the like); passive skills have nothing to measure. Time is the quest clock, so pauses and loading do not
-count against a skill. Skills that were already running when the quest clock started count from the start, and if
-HunterPie attached to a quest that was already under way the percentages are of the time since it attached, with a
-line saying so.
+Skill uptime comes from the [My Hunt Report](https://github.com/cubicj/my-hunt-report) mod, which runs inside the game
+(through REFramework) and can see every skill, which HunterPie cannot read from memory. The mod saves one line per finished
+quest to `reframework/data/MyHuntReport/history.jsonl` in the game folder. A few seconds after the quest ends (the mod
+saves at the result screen) HunterPie finds the line for that quest and adds the skills to the end of the hunt file and
+the session log, as the share of your damage dealt while each skill was active. HunterPie only reads the mod's file. If the
+mod is not installed, or the quest never reached its result screen, the hunt file says so after about three minutes.
+Training-area sessions are not saved by the mod and get no skill section.
 
 ```
 ===== Hunt summary =====
@@ -100,9 +101,10 @@ Monsters
 Party damage
   1. Rock (you) [HuntingHorn]  9,100 damage  91%  31.9 DPS
 
-Skill uptime (over 04:49 of quest time)
-  Burst          62.3%  (03:00, 4 activations)
-  Latent Power   41.2%  (01:59, 2 activations)
+Skill uptime (from My Hunt Report: share of your damage dealt while each skill was active)
+  Maximum Might  81.0%
+  Burst          62.3%
+  Latent Power   41.2%
 ```
 
 Only the newest 20 session logs and 100 hunt logs are kept; nothing else in the folder is touched. A log directory that
@@ -294,6 +296,6 @@ shown in the damage column but left out of DPS; otherwise the first seconds woul
 
 ## Tests
 
-`dotnet test HunterPie.Linux.Tests` runs the tests for the Linux host (skill uptime, the dump/diff tool, option parsing, and
+`dotnet test HunterPie.Linux.Tests` runs the tests for the Linux host (reading My Hunt Report's skill uptime, the dump/diff tool, option parsing, and
 a stress test that a monster dying while it despawns cannot deadlock the hunt recorder). `dotnet test HunterPie.Core.Tests`
 runs the original ones.
