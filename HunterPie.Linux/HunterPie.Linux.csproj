@@ -14,6 +14,9 @@
   <ItemGroup>
     <InternalsVisibleTo Include="HunterPie.Linux.Overlay" />
     <InternalsVisibleTo Include="HunterPie.Linux.Overlay.Tests" />
+    <InternalsVisibleTo Include="HunterPie.Linux.Tests" />
+    <!-- NSubstitute builds its fakes in this assembly -->
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
 
   <ItemGroup>

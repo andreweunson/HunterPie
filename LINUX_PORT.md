@@ -291,3 +291,9 @@ reads. Players already in the party when the overlay first looks count from the 
 mid-quest gives each of them a DPS averaged over the whole quest. The quest clock can start after the fight did (the
 monster is tagged first), so damage a hunter already has when first seen in the first 15 s, or when joining later, is
 shown in the damage column but left out of DPS; otherwise the first seconds would show an absurd peak.
+
+## Tests
+
+`dotnet test HunterPie.Linux.Tests` runs the tests for the Linux host (skill uptime, the dump/diff tool, option parsing, and
+a stress test that a monster dying while it despawns cannot deadlock the hunt recorder). `dotnet test HunterPie.Core.Tests`
+runs the original ones.
