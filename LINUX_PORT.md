@@ -80,6 +80,13 @@ summary has the result and duration, each monster that took damage (outcome, enr
 the others listed as not engaged) and the party's damage, share and DPS (the same "damage before the quest clock does
 not count" rule as the overlay). The flinch gauge is not logged: the game's counter for it misses most flinches.
 
+The summary ends with each timed skill's uptime: the share of the quest clock it was active, how long that is in total
+and how many times it activated. Only skills the game reports as timed buffs appear (Burst, Latent Power, Offensive
+Guard and the like); passive skills have nothing to measure. Time is the quest clock, so pauses and loading do not
+count against a skill. Skills that were already running when the quest clock started count from the start, and if
+HunterPie attached to a quest that was already under way the percentages are of the time since it attached, with a
+line saying so.
+
 ```
 ===== Hunt summary =====
 Quest:     (unnamed) (id 392, Hunt)
@@ -92,6 +99,10 @@ Monsters
   Not engaged: Tempered Balahara x3
 Party damage
   1. Rock (you) [HuntingHorn]  9,100 damage  91%  31.9 DPS
+
+Skill uptime (over 04:49 of quest time)
+  Burst          62.3%  (03:00, 4 activations)
+  Latent Power   41.2%  (01:59, 2 activations)
 ```
 
 Only the newest 20 session logs and 100 hunt logs are kept; nothing else in the folder is touched. A log directory that

@@ -2,6 +2,7 @@ using HunterPie.Core.Game;
 using HunterPie.Core.Game.Entity.Enemy;
 using HunterPie.Core.Game.Entity.Game.Quest;
 using HunterPie.Core.Game.Entity.Party;
+using HunterPie.Core.Game.Entity.Player;
 using HunterPie.Core.Game.Enums;
 using HunterPie.Core.Game.Events;
 using HunterPie.Integrations.Datasources.MonsterHunterWilds.Entity.Enemy;
@@ -20,11 +21,12 @@ internal sealed class HuntRecorder : IDisposable
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(500);
 
     // Damage a member has when first seen this early in the quest is treated as dealt before the quest clock started
-    private const double EarlyQuestSeconds = 15;
+    internal const double EarlyQuestSeconds = 15;
 
     private readonly Lock _lock = new();
     private readonly Context _context;
     private readonly LogSink _sink;
+    private readonly SkillUptimeTracker _skills = new();
     private readonly Dictionary<IMonster, MonsterRecord> _monsters = new();
     private readonly List<IPartyMember> _newcomers = new(8);
     private readonly Dictionary<IMonsterAilment, MonsterRecord> _ailmentOwners = new();
@@ -46,6 +48,8 @@ internal sealed class HuntRecorder : IDisposable
         _context.Game.Player.OnLogin += OnLogin;
         _context.Game.Player.OnLogout += OnLogout;
         _context.Game.Player.OnStageUpdate += OnStageUpdate;
+        _context.Game.Player.OnAbnormalityStart += OnAbnormalityStart;
+        _context.Game.Player.OnAbnormalityEnd += OnAbnormalityEnd;
         _context.Game.OnMonsterSpawn += OnMonsterSpawn;
         _context.Game.OnMonsterDespawn += OnMonsterDespawn;
         _context.Game.OnQuestStart += OnQuestStart;
@@ -124,6 +128,29 @@ internal sealed class HuntRecorder : IDisposable
             // Damage already on the board belongs to the time before the quest clock, so start the party tally afresh
             _members.Clear();
             PollMembers();
+
+            // Skills that were already running when the quest clock started count from the start of the quest
+            _skills.Begin(QuestSeconds(), SnapshotAbnormalities());
+        }
+    }
+
+    // Skills are only tracked while a quest is running: the game also reports them in the hunting zone before the quest
+    // clock starts, and clears them when the player leaves, which can be a moment after the quest has ended
+    private void OnAbnormalityStart(object? sender, IAbnormality abnormality)
+    {
+        lock (_lock)
+        {
+            if (QuestActive)
+                _skills.Start(abnormality, QuestSeconds());
+        }
+    }
+
+    private void OnAbnormalityEnd(object? sender, IAbnormality abnormality)
+    {
+        lock (_lock)
+        {
+            if (QuestActive)
+                _skills.End(abnormality, QuestSeconds());
         }
     }
 
@@ -150,6 +177,9 @@ internal sealed class HuntRecorder : IDisposable
             }
             finished.OnDeathCounterChange -= OnCartCounterChange;
             _quest!.OnDeathCounterChange -= OnCartCounterChange;
+
+            // The game clears skills when the player leaves the hunting zone, after this point
+            _skills.CloseAll(e.TimeElapsed.TotalSeconds);
 
             _sink.EndHunt(BuildSummary(finished, e.Status.ToString(), e.TimeElapsed));
             _quest = null;
@@ -562,8 +592,40 @@ internal sealed class HuntRecorder : IDisposable
             lines.Add($"  Team total: {total.ToString("N0", CultureInfo.InvariantCulture)}. DPS counts damage dealt since the quest clock started or the hunter joined.");
 
         lines.Add(string.Empty);
+        lines.AddRange(_skills.Summary());
+        lines.Add(string.Empty);
 
         return lines;
+    }
+
+    /// <summary>Seconds on the quest clock, falling back to wall time since the quest started if the game is going away</summary>
+    private double QuestSeconds()
+    {
+        try
+        {
+            return Math.Max(0, _context.Game.TimeElapsed);
+        }
+        catch (NullReferenceException)
+        {
+            return Math.Max(0, (DateTime.Now - _questStartedAt).TotalSeconds);
+        }
+    }
+
+    private IAbnormality[] SnapshotAbnormalities()
+    {
+        // The game mutates its list from the scan thread
+        for (int attempt = 0; attempt < 3; attempt++)
+        {
+            try
+            {
+                return [.. _context.Game.Player.Abnormalities];
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        }
+
+        return [];
     }
 
     private static string QuestName(IQuest quest) => string.IsNullOrWhiteSpace(quest.Name) ? "(unnamed)" : quest.Name.Trim();
@@ -590,6 +652,7 @@ internal sealed class HuntRecorder : IDisposable
             {
                 quest.OnDeathCounterChange -= OnCartCounterChange;
                 PollMembersSafe();
+                _skills.CloseAll(QuestSeconds());
                 Event("Hunt interrupted: the game closed or HunterPie stopped");
                 _sink.EndHunt(BuildSummary(quest, "Interrupted", DateTime.Now - _questStartedAt));
                 _quest = null;
@@ -598,6 +661,8 @@ internal sealed class HuntRecorder : IDisposable
             _context.Game.Player.OnLogin -= OnLogin;
             _context.Game.Player.OnLogout -= OnLogout;
             _context.Game.Player.OnStageUpdate -= OnStageUpdate;
+            _context.Game.Player.OnAbnormalityStart -= OnAbnormalityStart;
+            _context.Game.Player.OnAbnormalityEnd -= OnAbnormalityEnd;
             _context.Game.OnMonsterSpawn -= OnMonsterSpawn;
             _context.Game.OnMonsterDespawn -= OnMonsterDespawn;
             _context.Game.OnQuestStart -= OnQuestStart;
