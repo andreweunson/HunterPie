@@ -26,6 +26,7 @@ internal sealed class HuntRecorder : IDisposable
     private readonly Context _context;
     private readonly LogSink _sink;
     private readonly Dictionary<IMonster, MonsterRecord> _monsters = new();
+    private readonly List<IPartyMember> _newcomers = new(8);
     private readonly Dictionary<IMonsterAilment, MonsterRecord> _ailmentOwners = new();
     private readonly List<MemberRecord> _members = new();
     private readonly List<IPartyMember> _snapshot = new(8);
@@ -428,11 +429,37 @@ internal sealed class HuntRecorder : IDisposable
         foreach (MemberRecord member in _members)
             member.Present = false;
 
+        // Members the recorder already follows first; whoever is left over is new or a hunter who came back
+        _newcomers.Clear();
+
         foreach (IPartyMember source in _snapshot)
         {
-            MemberRecord? record = _members.Find(it => ReferenceEquals(it.Source, source));
+            if (_members.Find(it => ReferenceEquals(it.Source, source)) is { } known)
+            {
+                known.Present = true;
+                known.Update(source);
+            }
+            else
+                _newcomers.Add(source);
+        }
 
-            if (record is null)
+        foreach (IPartyMember source in _newcomers)
+        {
+            // A hunter who left and came back (the game swaps support hunters in and out as the party changes) is one
+            // entry with the damage of every stay added up, not a second entry. The old party member object may be
+            // replaced by the new one within a single poll, so "not seen in this poll" is what counts, not "left".
+            MemberRecord? record = _members.Find(it => !it.Present && it.IsSameHunter(source));
+
+            if (record is not null)
+            {
+                bool wasAway = record.Left;
+                int before = record.Damage;
+                record.Rebind(source);
+
+                if (wasAway)
+                    Event($"Party: {record.Name} returned ({source.Weapon}, {before:N0} damage so far)");
+            }
+            else
             {
                 // Same rule as the overlay: damage found at the start of the quest, or on joining, was not dealt in the
                 // time DPS is divided by. Attaching to a quest that is well under way counts from its start instead.
@@ -693,16 +720,37 @@ internal sealed class HuntRecorder : IDisposable
 
     private sealed class MemberRecord(IPartyMember source, double joinedAt, int baseline)
     {
-        public IPartyMember Source { get; } = source;
+        // Damage of the current stay, and what earlier stays added up to (the game starts a returning hunter at zero)
+        private int _stay;
+        private int _carried;
+        private readonly bool _isPlayer = source.Type == MemberType.Player;
+
+        public IPartyMember Source { get; private set; } = source;
         public string Name { get; private set; } = source.Name;
         public Weapon Weapon { get; private set; } = source.Weapon;
         public bool IsSelf { get; } = source.IsMyself;
-        public int Slot { get; } = source.Slot;
+        public int Slot { get; private set; } = source.Slot;
         public double JoinedAt { get; } = joinedAt;
         public int Baseline { get; } = baseline;
         public int Damage { get; private set; }
         public bool Present { get; set; }
         public bool Left { get; set; }
+
+        public bool IsSameHunter(IPartyMember member) =>
+            _isPlayer == (member.Type == MemberType.Player) && string.Equals(Name, member.Name, StringComparison.Ordinal);
+
+        /// <summary>The hunter is back under a new party member object. Damage that restarted from zero is added to what they did before.</summary>
+        public void Rebind(IPartyMember member)
+        {
+            if (Math.Max(member.Damage, 0) < _stay)
+            {
+                _carried += _stay;
+                _stay = 0;
+            }
+
+            Source = member;
+            Slot = member.Slot;
+        }
 
         public void Update(IPartyMember member)
         {
@@ -710,7 +758,8 @@ internal sealed class HuntRecorder : IDisposable
             Weapon = member.Weapon;
 
             // Keep the highest value: the game may clear the party just as the quest ends
-            Damage = Math.Max(Damage, Math.Max(member.Damage, 0));
+            _stay = Math.Max(_stay, Math.Max(member.Damage, 0));
+            Damage = _carried + _stay;
             Left = false;
         }
     }

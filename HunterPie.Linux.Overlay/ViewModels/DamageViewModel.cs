@@ -21,6 +21,9 @@ public sealed class DamageViewModel : ViewModelBase
     public const int MinVisibleSeconds = 10;
 
     private readonly List<IPartyMember> _snapshot = new(8);
+
+    // Rows of hunters who left, kept so one who comes back picks up where they were
+    private readonly List<PlayerDamageViewModel> _departed = new(8);
     private bool _isActive;
     private bool _isEditing;
     private bool _wasInQuest;
@@ -382,13 +385,29 @@ public sealed class DamageViewModel : ViewModelBase
     private void Reconcile(double elapsed)
     {
         for (int i = Rows.Count - 1; i >= 0; i--)
-            if (Rows[i].Source is { } source && !_snapshot.Contains(source))
-                Rows.RemoveAt(i);
+        {
+            if (Rows[i].Source is not { } source || _snapshot.Contains(source))
+                continue;
+
+            if (_departed.Count >= 16)
+                _departed.RemoveAt(0);
+
+            _departed.Add(Rows[i]);
+            Rows.RemoveAt(i);
+        }
 
         foreach (IPartyMember member in _snapshot)
         {
             if (Contains(member))
                 continue;
+
+            if (TakeDeparted(member) is { } returning)
+            {
+                returning.Rebind(member);
+                returning.ShowStats = ShowStats;
+                Rows.Add(returning);
+                continue;
+            }
 
             // Members already there when we start looking are assumed to have been there since the beginning. Damage
             // they already have when first seen does not count towards DPS if that is early in the quest (the quest
@@ -399,6 +418,24 @@ public sealed class DamageViewModel : ViewModelBase
 
         if (Rows.Count > 0)
             _primed = true;
+    }
+
+    private PlayerDamageViewModel? TakeDeparted(IPartyMember member)
+    {
+        bool player = member.Type == MemberType.Player;
+
+        for (int i = 0; i < _departed.Count; i++)
+        {
+            PlayerDamageViewModel row = _departed[i];
+
+            if (row.IsCompanion == player || !string.Equals(row.Name, member.Name, StringComparison.Ordinal))
+                continue;
+
+            _departed.RemoveAt(i);
+            return row;
+        }
+
+        return null;
     }
 
     private bool Contains(IPartyMember member)
@@ -416,13 +453,13 @@ public sealed class DamageViewModel : ViewModelBase
         int total = 0;
 
         for (int i = 0; i < Rows.Count; i++)
-            total += Math.Max(Rows[i].Source?.Damage ?? 0, 0);
+            total += Rows[i].Carried + Math.Max(Rows[i].Source?.Damage ?? 0, 0);
 
         for (int i = 0; i < Rows.Count; i++)
         {
             PlayerDamageViewModel row = Rows[i];
             IPartyMember member = row.Source!;
-            int damage = Math.Max(member.Damage, 0);
+            int damage = row.Observe(Math.Max(member.Damage, 0));
 
             row.SetName(member.Name);
             row.SetWeapon(member.Weapon);
@@ -588,6 +625,7 @@ public sealed class DamageViewModel : ViewModelBase
     private void ClearRows()
     {
         Rows.Clear();
+        _departed.Clear();
         Summary = string.Empty;
         _summaryTotal = -1;
         _summarySecond = -1;
@@ -613,6 +651,7 @@ public sealed class DamageViewModel : ViewModelBase
         _frozen = false;
         _primed = false;
         IsActive = false;
+        _departed.Clear();
 
         if (Rows.Count > 0)
             ClearRows();

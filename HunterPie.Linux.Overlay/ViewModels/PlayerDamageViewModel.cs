@@ -34,7 +34,39 @@ public sealed class PlayerDamageViewModel : ViewModelBase
     private bool _hasStats;
     private bool _showStats;
 
-    public IPartyMember? Source { get; }
+    public IPartyMember? Source { get; private set; }
+
+    // A hunter who leaves and comes back (support hunters are swapped in and out as the party changes) keeps this row.
+    // The game starts the returning hunter's damage from zero again, so the earlier stays are kept here and added.
+    private int _stayPeak;
+
+    /// <summary>Damage dealt in earlier stays in the party</summary>
+    public int Carried { get; private set; }
+
+    /// <summary>Total damage for a reading of the member's own counter, remembering the highest of this stay</summary>
+    public int Observe(int raw)
+    {
+        if (raw > _stayPeak)
+            _stayPeak = raw;
+
+        return Carried + raw;
+    }
+
+    /// <summary>The hunter is back under a new party member object</summary>
+    public void Rebind(IPartyMember source)
+    {
+        // A counter that carried on is the same total; one that restarted is a new stay
+        if (Math.Max(source.Damage, 0) < _stayPeak)
+        {
+            Carried += _stayPeak;
+            _stayPeak = 0;
+        }
+
+        Source = source;
+        Slot = source.Type == MemberType.Player ? Math.Clamp(source.Slot, 0, CompanionSlot - 1) : CompanionSlot;
+        Name = source.Name;
+        Weapon = source.Weapon;
+    }
 
     // One history per graph mode, so switching modes in the settings keeps what was already recorded
     private readonly float[] _perSecondHistory = CreateHistory();
@@ -216,7 +248,7 @@ public sealed class PlayerDamageViewModel : ViewModelBase
     public int BaselineDamage { get; }
 
     /// <summary>0-3 for players in party order, <see cref="CompanionSlot"/> for support hunters</summary>
-    public int Slot { get; }
+    public int Slot { get; private set; }
 
     public bool IsSelf { get; }
 

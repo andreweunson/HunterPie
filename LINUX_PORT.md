@@ -236,6 +236,12 @@ dropped and the sampling interval doubles, so a whole quest always fits and draw
 The Damage meter section of the settings window turns the graph and the stats line on or off; the choice is saved in
 `overlay.json` next to the widget positions.
 
+A hunter who leaves and comes back (the game swaps support hunters in and out whenever the party size changes, and
+real players can reconnect) is one row, and one entry in the hunt log, not two. The game starts a returning hunter's
+damage from zero again, so the meter adds up the damage of every stay; a counter that carried on is not added twice.
+Their DPS counts from the first time they joined. The hunt log says `Party: Kai returned`. Hunters are recognised by
+name, so two different hunters with the same name in one quest would be merged.
+
 The final numbers stay on screen after a quest ends and clear when you leave the hunting zone or a new quest
 starts. The meter is polled four times a second from the party data the host already scans, so it adds no memory
 reads. Players already in the party when the overlay first looks count from the start of the quest, so attaching
