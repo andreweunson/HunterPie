@@ -7,7 +7,10 @@ internal sealed record HostOptions(
     TimeSpan? RunFor,
     bool WriteLogs = true,
     bool FindMap = false,
-    bool FindCrypto = false
+    bool FindCrypto = false,
+    bool DumpSkills = false,
+    string? DumpLabel = null,
+    string[]? DiffSkills = null
 )
 {
     public const string Usage = """
@@ -21,6 +24,11 @@ internal sealed record HostOptions(
                           game open and your character loaded into the world
           --find-crypto   Check that the encryption key in the Wilds map decrypts your character's stats to believable
                           numbers and, if not, look for where the key moved to. Game open, character loaded
+          --dump-skills [label]
+                          Save the Wilds skill table (where the game keeps skill timers) to a file in the log folder,
+                          for finding skills HunterPie does not track. Game open, standing in a hunting area
+          --diff-skills <off> <on> [<off-again>]
+                          Compare two or three of those dumps and show which slots changed, then exit
           --verbose       Also print debug logs from HunterPie
           --run-for <s>   Exit by itself after <s> seconds (useful for scripts and tests)
           --no-logs       Do not write log files (default: a session log, and one file per hunt with a summary,
@@ -33,7 +41,9 @@ internal sealed record HostOptions(
 
     public static HostOptions Parse(string[] args)
     {
-        bool help = false, doctor = false, verbose = false, noLogs = false, findMap = false, findCrypto = false;
+        bool help = false, doctor = false, verbose = false, noLogs = false, findMap = false, findCrypto = false, dumpSkills = false;
+        string? dumpLabel = null;
+        var diffFiles = new List<string>();
         TimeSpan? runFor = null;
 
         for (int i = 0; i < args.Length; i++)
@@ -52,6 +62,21 @@ internal sealed record HostOptions(
                 case "--find-crypto":
                     findCrypto = true;
                     break;
+                case "--dump-skills":
+                    dumpSkills = true;
+
+                    if (i + 1 < args.Length && !args[i + 1].StartsWith('-'))
+                        dumpLabel = args[++i];
+
+                    break;
+                case "--diff-skills":
+                    while (i + 1 < args.Length && !args[i + 1].StartsWith('-') && diffFiles.Count < 3)
+                        diffFiles.Add(args[++i]);
+
+                    if (diffFiles.Count < 2)
+                        throw new ArgumentException("--diff-skills expects two or three dump files");
+
+                    break;
                 case "--verbose":
                     verbose = true;
                     break;
@@ -69,6 +94,16 @@ internal sealed record HostOptions(
             }
         }
 
-        return new HostOptions(help, doctor, verbose, runFor, !noLogs, findMap, findCrypto);
+        return new HostOptions(
+            help,
+            doctor,
+            verbose,
+            runFor,
+            !noLogs,
+            findMap,
+            findCrypto,
+            dumpSkills,
+            dumpLabel,
+            diffFiles.Count > 0 ? diffFiles.ToArray() : null);
     }
 }

@@ -145,6 +145,28 @@ area it is decisive.
 
 After the map works, copy the file to `HunterPie/Address/` so it survives a rebuild.
 
+## Finding skills HunterPie does not track
+
+Wilds skills come from a table of pointers (the map's `Player::Abnormalities::Skills`). Each tracked skill is one slot:
+`Offset` in `Game/Wilds/Data/AbnormalityData.xml` is the slot's position in hex, and the struct the slot points at has the
+timer (a float) at +0x10 and the maximum at +0x14. Skills such as Maximum Might, Agitator and Peak Performance are not in
+that file. `--dump-skills` and `--diff-skills` help find out whether they are in the table, and where. Both only read.
+
+```bash
+./HunterPie.Linux --dump-skills off      # in a hunting area, skill NOT active
+./HunterPie.Linux --dump-skills on       # same place, skill active
+./HunterPie.Linux --dump-skills off2     # skill off again (optional, hides values that change by themselves)
+./HunterPie.Linux --diff-skills skills-off-*.txt skills-on-*.txt skills-off2-*.txt
+```
+
+A dump is a text file in the log folder (`skills-<label>-<date>-<time>.txt`) and the command also prints the slots with a
+running timer, with the name of the tracked skill each one is, which doubles as a check that the table was found. The
+diff lists the 4-byte words that changed in each slot, first for slots that are not in the XML (where a new skill would
+show up) and then for ones that are. A skill with a timer shows a float going from 0 to a positive value at +0x10; a skill
+that only switches on and off shows a small int flipping. Confirm with a second situation that one slot always follows
+the skill, then add an `Abnormality` line to the XML (`Id="Skills.<game skill id>"`, `Name`, `Offset="<slot>"`, and
+`DependsOn`/`WithValue` for a flag instead of a timer). If nothing new changes, the skill is not in this table.
+
 ## How it works
 - `HunterPie.Platforms/Linux/` implements the platform interfaces: process discovery (`/proc/*/cmdline` + the PE image
   in `/proc/<pid>/maps`, which also gives the `BASE` address), memory (`/proc/<pid>/mem`), game version (PE

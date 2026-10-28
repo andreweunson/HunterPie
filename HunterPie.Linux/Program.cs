@@ -57,6 +57,16 @@ internal static class Program
             return MapFinder.RunCrypto();
         }
 
+        if (options.DumpSkills)
+        {
+            await HostBootstrapper.InitializeAsync(options with { WriteLogs = false });
+
+            return SkillTableDump.Dump(options.DumpLabel);
+        }
+
+        if (options.DiffSkills is { } diffFiles)
+            return SkillTableDump.Diff(diffFiles);
+
         using var shutdown = new CancellationTokenSource();
 
         Console.CancelKeyPress += (_, e) =>

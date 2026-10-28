@@ -358,7 +358,7 @@ internal static partial class MapFinder
         return size > 0;
     }
 
-    private static bool TryFindGame(out int pid, out nint imageBase, out string version)
+    internal static bool TryFindGame(out int pid, out nint imageBase, out string version)
     {
         pid = 0;
         imageBase = 0;
