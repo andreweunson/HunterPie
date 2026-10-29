@@ -299,3 +299,12 @@ shown in the damage column but left out of DPS; otherwise the first seconds woul
 `dotnet test HunterPie.Linux.Tests` runs the tests for the Linux host (reading My Hunt Report's skill uptime, the dump/diff tool, option parsing, and
 a stress test that a monster dying while it despawns cannot deadlock the hunt recorder). `dotnet test HunterPie.Core.Tests`
 runs the original ones.
+
+## When the damage widget's attack or affinity looks wrong
+
+The numbers under each hunter come from two small structs on the player (`Player::Status::Affinity` and
+`Player::Status::Damage` in the map), each a list of pointers to encrypted floats; HunterPie reads one fixed field of each
+(`CurrentCriticalRate` for affinity, `CurrentRawAttack` for attack). If a patch moves things around, the number shown can
+be a neighbouring field, such as the weapon's own affinity instead of the total. With the game open and your hunter in a
+hunting area, `./HunterPie.Linux --dump-status` decrypts every pointer in both structs. Put it next to the character
+screen, find the line that matches what the game shows, and the field to read is that offset.

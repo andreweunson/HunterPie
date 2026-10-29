@@ -10,7 +10,8 @@ internal sealed record HostOptions(
     bool FindCrypto = false,
     bool DumpSkills = false,
     string? DumpLabel = null,
-    string[]? DiffSkills = null
+    string[]? DiffSkills = null,
+    bool DumpStatus = false
 )
 {
     public const string Usage = """
@@ -29,6 +30,8 @@ internal sealed record HostOptions(
                           for finding skills HunterPie does not track. Game open, standing in a hunting area
           --diff-skills <off> <on> [<off-again>]
                           Compare two or three of those dumps and show which slots changed, then exit
+          --dump-status   Print every encrypted value next to the player's attack and affinity data, decrypted, to find
+                          which one matches the number the game shows. Game open, standing in a hunting area
           --verbose       Also print debug logs from HunterPie
           --run-for <s>   Exit by itself after <s> seconds (useful for scripts and tests)
           --no-logs       Do not write log files (default: a session log, and one file per hunt with a summary,
@@ -41,7 +44,7 @@ internal sealed record HostOptions(
 
     public static HostOptions Parse(string[] args)
     {
-        bool help = false, doctor = false, verbose = false, noLogs = false, findMap = false, findCrypto = false, dumpSkills = false;
+        bool help = false, doctor = false, verbose = false, noLogs = false, findMap = false, findCrypto = false, dumpSkills = false, dumpStatus = false;
         string? dumpLabel = null;
         var diffFiles = new List<string>();
         TimeSpan? runFor = null;
@@ -77,6 +80,9 @@ internal sealed record HostOptions(
                         throw new ArgumentException("--diff-skills expects two or three dump files");
 
                     break;
+                case "--dump-status":
+                    dumpStatus = true;
+                    break;
                 case "--verbose":
                     verbose = true;
                     break;
@@ -104,6 +110,7 @@ internal sealed record HostOptions(
             findCrypto,
             dumpSkills,
             dumpLabel,
-            diffFiles.Count > 0 ? diffFiles.ToArray() : null);
+            diffFiles.Count > 0 ? diffFiles.ToArray() : null,
+            dumpStatus);
     }
 }

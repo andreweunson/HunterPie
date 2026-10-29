@@ -358,7 +358,7 @@ internal static class CryptoProbe
         return true;
     }
 
-    private static bool TryFollow(IProbeMemory memory, nint start, int[] chain, out nint result)
+    internal static bool TryFollow(IProbeMemory memory, nint start, int[] chain, out nint result)
     {
         result = start;
 
@@ -373,7 +373,7 @@ internal static class CryptoProbe
         return true;
     }
 
-    private static bool TryReadPointer(IProbeMemory memory, nint address, out nint pointer)
+    internal static bool TryReadPointer(IProbeMemory memory, nint address, out nint pointer)
     {
         Span<byte> buffer = stackalloc byte[sizeof(long)];
         pointer = 0;

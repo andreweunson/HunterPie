@@ -40,6 +40,13 @@ public class HostOptionsTests
     }
 
     [TestMethod]
+    public void DumpStatusIsAFlag()
+    {
+        Assert.IsTrue(HostOptions.Parse(["--dump-status"]).DumpStatus);
+        Assert.IsFalse(HostOptions.Parse([]).DumpStatus);
+    }
+
+    [TestMethod]
     public void UnknownOptionIsAnError()
     {
         Assert.ThrowsException<ArgumentException>(() => HostOptions.Parse(["--nope"]));

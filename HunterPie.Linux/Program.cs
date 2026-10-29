@@ -64,6 +64,13 @@ internal static class Program
             return SkillTableDump.Dump(options.DumpLabel);
         }
 
+        if (options.DumpStatus)
+        {
+            await HostBootstrapper.InitializeAsync(options with { WriteLogs = false });
+
+            return StatusDump.Run();
+        }
+
         if (options.DiffSkills is { } diffFiles)
             return SkillTableDump.Diff(diffFiles);
 
