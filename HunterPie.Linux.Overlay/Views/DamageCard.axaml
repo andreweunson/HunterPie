@@ -48,9 +48,9 @@
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
 
-            <Grid Height="64" IsVisible="{Binding ShowGraphPanel}">
+            <Grid Height="150" IsVisible="{Binding ShowGraphPanel}">
                 <views:DpsGraph Rows="{Binding Rows}" Count="{Binding GraphCount}" Start="{Binding GraphStart}" Max="{Binding GraphMax}"
-                                Version="{Binding GraphVersion}" />
+                                Version="{Binding GraphVersion}" ShowMarkers="{Binding ShowDpsMarkers}" />
                 <TextBlock Classes="muted" FontSize="10" Margin="6,2,0,0" HorizontalAlignment="Left"
                            VerticalAlignment="Top" IsHitTestVisible="False" Text="{Binding GraphMaxText}" />
             </Grid>
@@ -63,8 +63,8 @@
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
 
-            <Grid Height="64" IsVisible="{Binding ShowSampleGraph}">
-                <views:DpsGraph Rows="{Binding SampleRows}" Count="{Binding SampleGraphCount}" Max="{Binding SampleGraphMax}" />
+            <Grid Height="150" IsVisible="{Binding ShowSampleGraph}">
+                <views:DpsGraph Rows="{Binding SampleRows}" Count="{Binding SampleGraphCount}" Max="{Binding SampleGraphMax}" ShowMarkers="True" />
                 <TextBlock Classes="muted" FontSize="10" Margin="6,2,0,0" HorizontalAlignment="Left"
                            VerticalAlignment="Top" IsHitTestVisible="False" Text="peak 61 DPS" />
             </Grid>

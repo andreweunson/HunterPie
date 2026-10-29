@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using HunterPie.Linux.Overlay.ViewModels;
+using System.Globalization;
 
 namespace HunterPie.Linux.Overlay.Views;
 
@@ -27,6 +28,17 @@ public sealed class DpsGraph : Control
     public static readonly StyledProperty<int> VersionProperty =
         AvaloniaProperty.Register<DpsGraph, int>(nameof(Version));
 
+    public static readonly StyledProperty<bool> ShowMarkersProperty =
+        AvaloniaProperty.Register<DpsGraph, bool>(nameof(ShowMarkers));
+
+    /// <summary>DPS gridlines are drawn at every multiple of this</summary>
+    internal const double MarkerStep = 50;
+
+    // Closest the gridlines may get before only every second, third... multiple of the step is drawn
+    private const double MinMarkerSpacing = 11;
+
+    private static readonly IBrush MarkerText = new SolidColorBrush(Color.Parse("#99FFFFFF"));
+    private static readonly Pen MarkerGrid = new(new SolidColorBrush(Color.Parse("#2EFFFFFF")), 1);
     private static readonly IBrush Track = new SolidColorBrush(Color.Parse("#14FFFFFF"));
     private static readonly Pen Grid = new(new SolidColorBrush(Color.Parse("#22FFFFFF")), 1);
     private static readonly Pen[] Lines = Enumerable.Range(0, 5).Select(slot => new Pen(SlotPalette.Line(slot), 1.5, lineJoin: PenLineJoin.Round)).ToArray();
@@ -34,7 +46,7 @@ public sealed class DpsGraph : Control
 
     static DpsGraph()
     {
-        AffectsRender<DpsGraph>(RowsProperty, CountProperty, StartProperty, MaxProperty, VersionProperty);
+        AffectsRender<DpsGraph>(RowsProperty, CountProperty, StartProperty, MaxProperty, VersionProperty, ShowMarkersProperty);
     }
 
     public IReadOnlyList<PlayerDamageViewModel>? Rows
@@ -64,6 +76,13 @@ public sealed class DpsGraph : Control
         set => SetValue(MaxProperty, value);
     }
 
+    /// <summary>Draws a labelled gridline at every multiple of 50 DPS. Off for graphs that do not plot DPS.</summary>
+    public bool ShowMarkers
+    {
+        get => GetValue(ShowMarkersProperty);
+        set => SetValue(ShowMarkersProperty, value);
+    }
+
     public int Version
     {
         get => GetValue(VersionProperty);
@@ -74,7 +93,11 @@ public sealed class DpsGraph : Control
     {
         var area = new Rect(Bounds.Size);
         context.DrawRectangle(Track, null, new RoundedRect(area, 4));
-        context.DrawLine(Grid, new Point(0, area.Height / 2), new Point(area.Width, area.Height / 2));
+
+        if (ShowMarkers)
+            DrawMarkers(context, area);
+        else
+            context.DrawLine(Grid, new Point(0, area.Height / 2), new Point(area.Width, area.Height / 2));
 
         if (Rows is not { Count: > 0 } rows || Count - Start < 2 || Max <= 0)
             return;
@@ -87,6 +110,46 @@ public sealed class DpsGraph : Control
         for (int i = 0; i < rows.Count; i++)
             if (rows[i].IsSelf)
                 DrawLine(context, area, rows[i], SelfLines);
+    }
+
+    private void DrawMarkers(DrawingContext context, Rect area)
+    {
+        double top = 2;
+        double height = area.Height - top * 2;
+
+        foreach (double value in MarkerValues(Max, height))
+        {
+            double y = top + height - value / Max * height;
+
+            context.DrawLine(MarkerGrid, new Point(0, y), new Point(area.Width, y));
+
+            var label = new FormattedText(
+                value.ToString("0", CultureInfo.InvariantCulture),
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                Typeface.Default,
+                9,
+                MarkerText);
+
+            // Sits just above its line at the right edge, so it stays clear of the peak caption at the top left
+            context.DrawText(label, new Point(area.Width - label.Width - 3, y - label.Height - 1));
+        }
+    }
+
+    /// <summary>
+    /// The DPS values that get a gridline: every multiple of 50 below the top of the axis. When that would put the lines
+    /// closer together than is readable (a very high axis), every second, third... multiple is used instead.
+    /// </summary>
+    internal static IEnumerable<double> MarkerValues(double max, double pixelHeight)
+    {
+        if (max <= 0 || pixelHeight <= 0)
+            yield break;
+
+        double spacing = MarkerStep / max * pixelHeight;
+        int every = Math.Max(1, (int)Math.Ceiling(MinMarkerSpacing / spacing));
+
+        for (double value = MarkerStep * every; value < max; value += MarkerStep * every)
+            yield return value;
     }
 
     private void DrawLine(DrawingContext context, Rect area, PlayerDamageViewModel row, Pen[] pens)

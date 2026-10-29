@@ -118,6 +118,7 @@ public sealed class DamageViewModel : ViewModelBase
                 return;
 
             Raise(nameof(IsMovingAverage));
+            Raise(nameof(ShowDpsMarkers));
             ApplyHistorySelection();
         }
     }
@@ -146,6 +147,9 @@ public sealed class DamageViewModel : ViewModelBase
     }
 
     public bool IsMovingAverage => GraphMode == GraphMode.MovingAverage;
+
+    /// <summary>The 50 DPS gridlines only make sense when the graph plots DPS, not total damage</summary>
+    public bool ShowDpsMarkers => GraphMode != GraphMode.TotalDamage;
 
     /// <summary>User option: which moment the seconds in DPS are counted from</summary>
     public DpsStrategy Strategy

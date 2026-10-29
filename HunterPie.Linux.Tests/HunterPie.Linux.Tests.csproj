@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\HunterPie.Linux\HunterPie.Linux.csproj" />
+    <ProjectReference Include="..\HunterPie.Linux.Overlay\HunterPie.Linux.Overlay.csproj" />
   </ItemGroup>
 
 </Project>
