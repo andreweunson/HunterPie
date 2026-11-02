@@ -34,6 +34,15 @@ public sealed class MonsterPlacement : WidgetPlacement
     public bool ShowWeaknesses { get; set; } = true;
     public bool ShowAilments { get; set; } = true;
 
+    /// <summary>Choose which monsters show, as HunterPie's monster widget does</summary>
+    public bool TargetingEnabled { get; set; } = true;
+
+    public bool ShowOnlyTarget { get; set; } = true;
+
+    /// <summary>Infer, LockOn or MapPin</summary>
+    [JsonConverter(typeof(NameOrDefaultConverter<HunterPie.Core.Client.Configuration.Enums.TargetModeType>))]
+    public HunterPie.Core.Client.Configuration.Enums.TargetModeType TargetMode { get; set; } = HunterPie.Core.Client.Configuration.Enums.TargetModeType.Infer;
+
     /// <summary>Ailment ids or names (with * and ? wildcards) that never get a ring, see <see cref="AilmentBlacklist"/></summary>
     public List<string> HiddenAilments { get; set; } = [.. AilmentBlacklist.Defaults];
 

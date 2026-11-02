@@ -93,6 +93,15 @@
                             <CheckBox Content="Stamina bar" IsChecked="{Binding MonsterOptions.ShowStamina}" />
                             <CheckBox Content="Weaknesses" IsChecked="{Binding MonsterOptions.ShowWeaknesses}" />
                             <CheckBox Content="Ailments" IsChecked="{Binding MonsterOptions.ShowAilments}" />
+                            <CheckBox Content="Choose monsters like HunterPie (target)" IsChecked="{Binding MonsterOptions.TargetingEnabled}" />
+                            <StackPanel Margin="20,0,0,0" Spacing="4" IsEnabled="{Binding MonsterOptions.TargetingEnabled}">
+                                <ComboBox SelectedIndex="{Binding MonsterOptions.TargetModeIndex}" MinWidth="200">
+                                    <ComboBoxItem Content="Infer (distance, hits, health)" />
+                                    <ComboBoxItem Content="Lock-on" />
+                                    <ComboBoxItem Content="Map pin" />
+                                </ComboBox>
+                                <CheckBox Content="Only show the target" IsChecked="{Binding MonsterOptions.ShowOnlyTarget}" />
+                            </StackPanel>
                             <Expander Header="Hidden ailments" Margin="0,2,0,0" IsEnabled="{Binding MonsterOptions.ShowAilments}">
                                 <StackPanel Spacing="6" Margin="0,6,0,0">
                                     <TextBlock TextWrapping="Wrap" Opacity="0.7" FontSize="12"

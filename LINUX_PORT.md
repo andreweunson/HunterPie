@@ -308,3 +308,13 @@ The numbers under each hunter come from two small structs on the player (`Player
 be a neighbouring field, such as the weapon's own affinity instead of the total. With the game open and your hunter in a
 hunting area, `./HunterPie.Linux --dump-status` decrypts every pointer in both structs. Put it next to the character
 screen, find the line that matches what the game shows, and the field to read is that offset.
+
+## Which monsters the widget shows
+
+The overlay picks monsters the way HunterPie's own monster widget does (`MonsterTargetSelector`): the target comes from
+the lock-on, the map pin, or *Infer*, a weighted score of distance (0.45), recent hits within 30 s (0.40) and missing
+health (0.15), halved for untouched monsters, over monsters within 80 m or below 75% health. Upstream's service is
+event driven and internal to its assembly, so this is a polling copy; no core file changed.
+Settings (Monsters section): targeting on/off, mode (Infer, Lock-on, Map pin), "Only show the target". Unlike
+upstream, *only the target* and *Infer* are the defaults here, since the goal is fewer cards; with only-target off,
+all monsters show while none is targeted. Dead monsters are always hidden.

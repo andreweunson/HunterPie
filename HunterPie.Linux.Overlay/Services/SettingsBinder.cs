@@ -15,12 +15,18 @@ internal static class SettingsBinder
         monsters.ShowStamina = settings.Monsters.ShowStamina;
         monsters.ShowWeaknesses = settings.Monsters.ShowWeaknesses;
         monsters.ShowAilments = settings.Monsters.ShowAilments;
+        monsters.TargetingEnabled = settings.Monsters.TargetingEnabled;
+        monsters.ShowOnlyTarget = settings.Monsters.ShowOnlyTarget;
+        monsters.TargetMode = settings.Monsters.TargetMode;
         monsters.PropertyChanged += (_, _) =>
         {
             settings.Monsters.ShowIcons = monsters.ShowIcons;
             settings.Monsters.ShowStamina = monsters.ShowStamina;
             settings.Monsters.ShowWeaknesses = monsters.ShowWeaknesses;
             settings.Monsters.ShowAilments = monsters.ShowAilments;
+            settings.Monsters.TargetingEnabled = monsters.TargetingEnabled;
+            settings.Monsters.ShowOnlyTarget = monsters.ShowOnlyTarget;
+            settings.Monsters.TargetMode = monsters.TargetMode;
             settings.Save();
         };
 

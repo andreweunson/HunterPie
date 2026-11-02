@@ -29,6 +29,11 @@ public sealed class OverlayViewModel : ViewModelBase
 
     public ObservableCollection<MonsterViewModel> Monsters { get; } = new();
 
+    /// <summary>The monsters the widget draws: <see cref="Monsters"/> narrowed by the target selection</summary>
+    public ObservableCollection<MonsterViewModel> VisibleMonsters { get; } = new();
+
+    private readonly MonsterTargetTracker _tracker = new();
+
     public QuestViewModel Quest { get; } = new();
 
     public DamageViewModel Damage { get; } = new();
@@ -74,9 +79,9 @@ public sealed class OverlayViewModel : ViewModelBase
         private set => Set(ref _status, value);
     }
 
-    public bool ShowSample => IsEditing && Monsters.Count == 0;
+    public bool ShowSample => IsEditing && VisibleMonsters.Count == 0;
 
-    public bool ShowMonsters => IsEditing || (Layout.MonstersEnabled && Monsters.Count > 0);
+    public bool ShowMonsters => IsEditing || (Layout.MonstersEnabled && VisibleMonsters.Count > 0);
 
     public bool ShowQuest => IsEditing || (Layout.QuestEnabled && Quest.IsActive);
 
@@ -118,6 +123,9 @@ public sealed class OverlayViewModel : ViewModelBase
         // Turning portraits on while monsters are already in the list should fetch them
         MonsterOptions.PropertyChanged += (_, e) =>
         {
+            if (e.PropertyName is nameof(MonsterOptions.TargetingEnabled) or nameof(MonsterOptions.ShowOnlyTarget) or nameof(MonsterOptions.TargetMode))
+                UpdateVisibleMonsters();
+
             if (e.PropertyName != nameof(MonsterOptions.ShowIcons))
                 return;
 
@@ -125,7 +133,8 @@ public sealed class OverlayViewModel : ViewModelBase
                 monster.EnsureIcon();
         };
 
-        Monsters.CollectionChanged += (_, _) =>
+        Monsters.CollectionChanged += (_, _) => UpdateVisibleMonsters();
+        VisibleMonsters.CollectionChanged += (_, _) =>
         {
             Raise(nameof(ShowMonsters));
             Raise(nameof(ShowSample));
@@ -181,6 +190,7 @@ public sealed class OverlayViewModel : ViewModelBase
         DisposeMonsters();
         Status = IsDemo ? "Demo mode (no game)" : "Waiting for Monster Hunter to start";
         Monsters.Clear();
+        _tracker.Clear();
         Quest.Refresh(null);
     }
 
@@ -228,10 +238,60 @@ public sealed class OverlayViewModel : ViewModelBase
         Monsters.Add(new MonsterViewModel(monster, MonsterOptions));
     }
 
+    /// <summary>Recomputes which monsters the widget shows; the collection only changes when the set does</summary>
+    private void UpdateVisibleMonsters()
+    {
+        MonsterViewModel[] all = [.. Monsters];
+        MonsterOptions options = MonsterOptions;
+
+        // Without a game (sample/demo cards) there is nothing to infer from
+        if (_context is not { } context || all.Any(it => it.Source is null))
+        {
+            Sync(all);
+            return;
+        }
+
+        DateTime now = DateTime.UtcNow;
+        IMonster[] sources = [.. all.Select(it => it.Source!)];
+
+        object? inferred = null;
+        if (options.TargetingEnabled && options.TargetMode == HunterPie.Core.Client.Configuration.Enums.TargetModeType.Infer)
+            inferred = MonsterTargetSelector.Infer(_tracker.Observe(sources, context.Game.Player.Position, now), now);
+
+        var targets = new Target[all.Length];
+        var alive = new bool[all.Length];
+        for (int i = 0; i < all.Length; i++)
+        {
+            IMonster m = sources[i];
+            alive[i] = m.Health > 0;
+            Target inferredTarget = inferred is null ? Target.None : ReferenceEquals(inferred, m) ? Target.Self : Target.Another;
+            targets[i] = MonsterTargetSelector.Adapt(options.TargetingEnabled, options.TargetMode, m.Target, m.ManualTarget, inferredTarget);
+        }
+
+        bool[] visible = MonsterTargetSelector.Visible(options.TargetingEnabled, options.ShowOnlyTarget, targets, alive);
+        Sync([.. all.Where((_, i) => visible[i])]);
+    }
+
+    private void Sync(MonsterViewModel[] wanted)
+    {
+        if (VisibleMonsters.SequenceEqual(wanted))
+            return;
+
+        for (int i = VisibleMonsters.Count - 1; i >= 0; i--)
+            if (!wanted.Contains(VisibleMonsters[i]))
+                VisibleMonsters.RemoveAt(i);
+
+        for (int i = 0; i < wanted.Length; i++)
+            if (!VisibleMonsters.Contains(wanted[i]))
+                VisibleMonsters.Insert(Math.Min(i, VisibleMonsters.Count), wanted[i]);
+    }
+
     private void Tick()
     {
         foreach (MonsterViewModel monster in Monsters)
             monster.Refresh();
+
+        UpdateVisibleMonsters();
 
         if (IsDemo)
             return;
