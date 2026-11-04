@@ -318,3 +318,11 @@ event driven and internal to its assembly, so this is a polling copy; no core fi
 Settings (Monsters section): targeting on/off, mode (Infer, Lock-on, Map pin), "Only show the target". Unlike
 upstream, *only the target* and *Infer* are the defaults here, since the goal is fewer cards; with only-target off,
 all monsters show while none is targeted. Dead monsters are always hidden.
+
+## Settings window layout
+
+The main window has a burger button (top left) that opens a sidebar with four pages. Choosing one closes the sidebar.
+**Home** holds the general settings: edit/reset widget layout, monitor, keep above fullscreen games, quick on/off
+switches for the three widgets, and the hunt log folder. **Quest timer**, **Monsters** and **Damage meter** each hold
+that widget's show switch, size and opacity, and its own options (card contents, which monsters show and hidden
+ailments; graph, DPS strategy and window length). Nothing moved in `overlay.json`.

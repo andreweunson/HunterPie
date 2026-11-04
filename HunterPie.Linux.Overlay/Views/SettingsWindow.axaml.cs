@@ -18,6 +18,9 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
+
+        // Selecting before the page controls exist would run OnNavChanged too early
+        NavList.SelectedIndex = 0;
         DataContextChanged += (_, _) => WatchEditing();
         Opened += (_, _) =>
         {
@@ -41,6 +44,18 @@ public partial class SettingsWindow : Window
         (DpsStrategy.RelativeToQuest, "Start of the quest"),
         (DpsStrategy.RelativeToFirstHit, "First hit")
     ];
+
+    /// <summary>Opening a page from the menu closes the menu, like a normal burger menu</summary>
+    private void OnNavChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        Control[] pages = [HomePage, QuestPage, MonstersPage, DamagePage];
+        int selected = Math.Max(0, NavList.SelectedIndex);
+
+        for (int i = 0; i < pages.Length; i++)
+            pages[i].IsVisible = i == selected;
+
+        Split.IsPaneOpen = false;
+    }
 
     private bool _fillingStrategies;
 
